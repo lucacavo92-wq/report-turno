@@ -70,7 +70,8 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--a
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .seg button{padding:11px 6px}
 .seg.st{flex:1 1 160px;grid-auto-flow:column;grid-auto-columns:1fr;grid-template-columns:none}
-.seg.nums{flex:0 1 150px}
+.cas{display:flex;flex-direction:column;gap:6px}
+.cas .pre{min-width:78px}
 .seg.nums button{font-family:var(--f-mono)}
 .seg.st button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .seg button.c[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:var(--panel)}
@@ -134,14 +135,14 @@ const FIELDS = [
   { g:'Controllo magazzino', id:'pacchiMag',   name:'Pacchi in magazzino',          type:'num', re:/^pacchi\s+in\s+magazzino/i },
   { g:'Controllo magazzino', id:'pacchiSped',  name:'Pacchi spedibili',             type:'num', re:/^pacchi\s+spedibili/i },
   { g:'Controllo magazzino', id:'intest',      name:'Intestature a terra',          type:'num', re:/^intestature/i },
-  { g:'Controllo magazzino', id:'montalbetti', name:'Cassone Montalbetti',          type:'numstate', nums:[1,2,3], states:['pieno','metà','vuoto'], re:/montalbetti/i },
-  { g:'Controllo magazzino', id:'risaliti',    name:'Cassone Risaliti',             type:'numstate', nums:[1,2,3], states:['pieno','metà','vuoto'], re:/risaliti/i },
-  { g:'Controllo magazzino', id:'scoriaM',     name:'Cassone scoria',               type:'state', re:/scoria/i },
+  { g:'Controllo magazzino', id:'montalbetti', name:'Cassone Montalbetti',          type:'cassoni', re:/montalbetti/i },
+  { g:'Controllo magazzino', id:'risaliti',    name:'Cassone Risaliti',             type:'cassoni', re:/risaliti/i },
+  { g:'Controllo magazzino', id:'scoriaM',     name:'Cassone scoria',               type:'cassoni', re:/scoria/i },
   { g:'Controllo magazzino', id:'bancali',     name:'Bancali talloni',              type:'numtext', re:/^bancali/i },
   { g:'Controllo magazzino', id:'talloni',     name:'Talloni da tagliare',          type:'num', re:/^talloni/i },
   { g:'Controllo magazzino', id:'bloccate',    name:'Lamiere bloccate nel pulpito', type:'num', re:/bloccate/i },
   { g:'Reparto taglio bramme', id:'taglio',    name:'Bramme tagliate',              type:'num', re:/^bramme\s+tagliate/i },
-  { g:'Reparto taglio bramme', id:'scoriaB',   name:'Cassone scoria',               type:'state', re:/scoria/i },
+  { g:'Reparto taglio bramme', id:'scoriaB',   name:'Cassone scoria',               type:'cassoni', re:/scoria/i },
   { g:'Sicurezza',  id:'dpi',       name:'DPI e procedure',       type:'line' },
   { g:'Sicurezza',  id:'pulizia',   name:'Pulizia',               type:'line', pre:'Pulizia:' },
   { g:'Sicurezza',  id:'violenza',  name:'Violenza',              type:'line' },
@@ -160,8 +161,8 @@ const COMPOSITE = t => t === 'numstate' || t === 'numtext';
 const STATES = ['pieno','metà','vuoto'];
 const DEFAULT = {
   prod:'', ritardi:'', copertura:'', taglio:'',
-  pacchiMag:'', pacchiSped:'', intest:'', montalbetti:{n:'',s:''}, risaliti:{n:'',s:''}, scoriaM:'',
-  bancali:{n:'',s:''}, talloni:'', bloccate:'', scoriaB:'',
+  pacchiMag:'', pacchiSped:'', intest:'', montalbetti:{n:'',s:[]}, risaliti:{n:'',s:[]}, scoriaM:{n:'',s:[]},
+  bancali:{n:'',s:''}, talloni:'', bloccate:'', scoriaB:{n:'',s:[]},
   dpi:'Tutti i dipendenti hanno indossato correttamente i DPI e rispettato le procedure di sicurezza.',
   pulizia:'nessuna segnalazione.', violenza:'Nessun atto di violenza nè fisica nè verbale.', nearmiss:'Nessun near miss.',
   estetica:'c', planarita:'c', dimensioni:'c', noteq:'',
@@ -184,6 +185,11 @@ function clean(t){
 function readVal(fd, rest){
   rest = rest.trim().replace(/\.$/,'');
   if (fd.type === 'num') { const m = rest.match(/\d+(?:[.,]\d+)?/); return m ? m[0] : ''; }
+  if (fd.type === 'cassoni') {
+    const st = (rest.match(/pien\w*|met\w*|vuot\w*/gi) || []).map(k => /^pien/i.test(k) ? 'pieno' : /^met/i.test(k) ? 'metà' : 'vuoto');
+    const n = (rest.match(/^\s*(\d+)/) || [])[1] || (st.length ? String(st.length) : '');
+    return { n, s: st };
+  }
   if (fd.type === 'state') { const m = rest.match(/pien|met|vuot/i); return m ? ({pien:'pieno', met:'metà', vuot:'vuoto'})[m[0].toLowerCase()] : ''; }
   const m = rest.match(/^\s*(?:n°?\s*)?(\d+)?\s*[,;-]?\s*(.*)$/i);
   let st = (m[2] || '').trim();
@@ -260,8 +266,17 @@ document.querySelectorAll('#shiftRow button').forEach(b => b.onclick = () => { s
 function setNow(){ const a = autoShift(new Date()); shift = a.s; $('date').value = isoDate(a.d); paintShift(); }
 
 /* ---------- messaggio nuovo ---------- */
+// quanti cassoni: il numero scritto nel box, altrimenti quello di prima, altrimenti 1
+function quanti(id){ const x = values[id] || {}; return Math.min(20, +(x.n || '').trim() || +(orig[id] || {}).n || 1); }
 function v(id){
   const t = BYID[id].type;
+  if (t === 'cassoni') {
+    const o = orig[id] || {n:'', s:[]};
+    if (!checked.has(id)) return o;
+    const x = values[id] || {};
+    const n = quanti(id);
+    return { n: String(n), s: Array.from({length:n}, (_, i) => (x.s || [])[i] || o.s[i] || '') };
+  }
   if (COMPOSITE(t)) {
     const o = orig[id] || {n:'',s:''};
     if (!checked.has(id)) return o;
@@ -277,7 +292,7 @@ function v(id){
 const confTxt = (x, plural) => (x === 'n' ? 'non ' : '') + (plural ? 'conformi' : 'conforme');
 const oraTxt = t => { const [h, m] = t.split(':'); return `${+h}.${m}`; };
 const lines = s => (s || '').split('\n').map(x => x.trim()).filter(Boolean);
-const fmt = (f, x) => COMPOSITE(f.type) ? [x.n, x.s].filter(Boolean).join(', ') : (x || '').trim();
+const fmt = (f, x) => f.type === 'cassoni' ? (x.n ? `${x.n} (${x.s.map(k => k || '–').join(', ')})` : '') : COMPOSITE(f.type) ? [x.n, x.s].filter(Boolean).join(', ') : (x || '').trim();
 function block(title, g){
   const rows = FIELDS.filter(f => f.g === g).map(f => [f, fmt(f, v(f.id))]).filter(r => r[1]);
   return rows.length ? ['', title, ...rows.map(([f, x]) => `• ${f.name}: ${x}`)] : [];
@@ -342,6 +357,27 @@ function renderFields(){
       bc.onclick = () => { values[f.id] = 'c'; paint(); update(); };
       bn.onclick = () => { values[f.id] = 'n'; paint(); update(); };
       paint(); seg.append(bc, bn); ed.append(seg); focusEl = bc;
+    } else if (f.type === 'cassoni') {
+      const cur = () => values[f.id] || (values[f.id] = { n:'', s:[] });
+      const row = el('div','fix');
+      row.append(el('span','pre','N° cassoni'));
+      const n = el('input'); n.type = 'text'; n.inputMode = 'numeric'; n.className = 'n'; n.id = 'in-' + f.id;
+      n.placeholder = (orig[f.id] || {}).n || '1';
+      const rows = el('div','cas');
+      const draw = () => {
+        rows.innerHTML = '';
+        for (let i = 0; i < quanti(f.id); i++) {
+          const r = el('div','fix'); r.append(el('span','pre', 'Cassone ' + (i + 1)));
+          const seg = el('div','seg st');
+          const shown = () => cur().s[i] || (orig[f.id] || {s:[]}).s[i];
+          const bs = STATES.map(k => { const b = el('button', null, k); b.type = 'button';
+            b.onclick = () => { cur().s[i] = k; paint(); update(); }; return b; });
+          const paint = () => bs.forEach((b, j) => b.setAttribute('aria-pressed', shown() === STATES[j]));
+          paint(); seg.append(...bs); r.append(seg); rows.append(r);
+        }
+      };
+      n.addEventListener('input', () => { cur().n = n.value.replace(/\D/g,''); draw(); update(); });
+      row.append(n); draw(); ed.append(row, rows); focusEl = n;
     } else if (f.type === 'state' || f.type === 'numstate' || f.type === 'numtext') {
       const row = el('div','fix');
       const cur = () => values[f.id] !== undefined ? values[f.id] : (COMPOSITE(f.type) ? {n:'',s:''} : '');

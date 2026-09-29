@@ -15,9 +15,9 @@ Ogni turno si manda sul gruppo WhatsApp "FIL A.S.Q" un report quasi sempre ugual
   10:00–17:59 → 6-14; 18:00–01:59 → 14-22 (dopo mezzanotte data del giorno prima); 02:00–09:59 → 22-6 con la **data della mattina**.
 - Campi: Produzione (ton), Ritardi, Copertura schede (si sceglie l'ora → "Copertura schede fino alle 7.30");
   Controllo magazzino (dal foglio di Luca del 29/09): Pacchi in magazzino, Pacchi spedibili, Intestature a terra (numeri),
-  Cassone Montalbetti e Cassone Risaliti (quanti cassoni: tasti 1/2/3 + tasti pieno/metà/vuoto → "2, metà"), Cassone scoria (pieno/metà/vuoto), Bancali talloni (n° + stato scritto),
+  Cassone Montalbetti, Cassone Risaliti, Cassone scoria (box "N° cassoni" + per ogni cassone tasti pieno/metà/vuoto → "2 (pieno, metà)"), Bancali talloni (n° + stato scritto),
   Talloni da tagliare, Lamiere bloccate nel pulpito (numeri);
-  Reparto taglio bramme: Bramme tagliate (numero), Cassone scoria (pieno/metà/vuoto). Righe vuote non escono nel messaggio.
+  Reparto taglio bramme: Bramme tagliate (numero), Cassone scoria (come sopra). Righe vuote non escono nel messaggio.
   Sicurezza: DPI e procedure, Pulizia, Violenza, Near miss;
   Qualità: Estetica, Planarità, Larghezze/lunghezze/spessori (ognuno **Conforme / Non conforme**) + Note qualità (testo libero;
   es. "Planarità sul 25 mm accettabile" va nelle note); Ambiente: Scrubber, Emissioni convogliate, Emissioni diffuse; Segnalazioni.
