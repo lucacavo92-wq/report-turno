@@ -24,7 +24,8 @@ Ogni turno si manda sul gruppo WhatsApp "FIL A.S.Q" un report quasi sempre ugual
 - Intestazione: logo in alto a sinistra, "FIL", "Report turno". Titolo del messaggio in grassetto: `*Report turno 14-22 del 28/09*`.
 
 ## Da fare
-- Grafica e logo presi dal sito FIL (fabbricaitalianalamiere.com): serve accesso di rete o screenshot + logo da Luca.
-  Il logo vero va solo nel file del repository, non nella pagina Claude pubblicata.
+- Grafica stile sito FIL fatta (blu #2884ff, Open Sans, schede con bordo blu in alto). Logo `logo.png` ritagliato da uno
+  screenshot del sito (bassa risoluzione): se Luca manda il file originale, sostituirlo. Nel file `index.html` il logo è
+  incorporato; la pagina Claude pubblicata ha solo un quadrato "FIL" al posto del logo.
 - Luca deve ancora provare Copia e Apri in WhatsApp.
 - Installazione sul telefono "come Enduro Crono": da capire come era fatta.
