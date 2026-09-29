@@ -1,0 +1,476 @@
+<title>Report Turno FIL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&family=Roboto+Mono:wght@500&display=swap">
+<style>
+/* Layout: stile sito FIL — barra bianca con logo, schede bianche con bordo blu in alto, blu FIL per i tasti */
+:root{
+  --hero:#2a2f36; --hero-ink:#ffffff; --shadow:0 2px 14px rgba(0,0,0,.12);
+  --bg:#ffffff; --panel:#ffffff; --ink:#3a3a3a; --muted:#6f6f6f; --line:#e1e1e1;
+  --steel:#2884ff; --accent:#2884ff; --accent-ink:#ffffff; --ok:#2e8b57; --bad:#c9372c; --soft:#f7f9fb;
+  --f-display:"Open Sans","Noto Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-body:"Open Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"Roboto Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11161c; --panel:#1a2129; --hero:#0b0f14; --shadow:0 2px 14px rgba(0,0,0,.5); --ink:#e6eaee; --muted:#9aa5b0; --line:#2c3642;
+  --steel:#6aa8ff; --accent:#3b8eff; --accent-ink:#ffffff; --ok:#4fbf82; --bad:#ef6f63; --soft:#151b22; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11161c; --panel:#1a2129; --hero:#0b0f14; --shadow:0 2px 14px rgba(0,0,0,.5); --ink:#e6eaee; --muted:#9aa5b0; --line:#2c3642;
+  --steel:#6aa8ff; --accent:#3b8eff; --accent-ink:#ffffff; --ok:#4fbf82; --bad:#ef6f63; --soft:#151b22; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body);padding-inline:16px;padding-block:0 40px}
+.wrap{max-width:600px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+
+/* barra bianca come il sito */
+header{display:flex;align-items:center;gap:14px;background:var(--panel);border-bottom:3px solid var(--accent);margin-inline:-16px;padding:12px 20px;box-shadow:var(--shadow)}
+.logo{height:58px;min-width:38px;padding:0 6px;background:var(--accent);color:#fff;display:grid;place-items:center;font:700 20px/1 var(--f-display);letter-spacing:1px}
+.logofull{height:58px;width:auto;display:block}
+/* titolo nella barra, accanto al logo */
+.htitle{display:flex;flex-direction:column;justify-content:center;min-width:0;border-left:1px solid var(--line);padding-left:14px;align-self:stretch}
+.htitle h1{margin:0;font:400 26px/1.1 var(--f-display);text-transform:uppercase;letter-spacing:.5px;color:var(--ink)}
+.htitle p{margin:3px 0 0;font:600 14px/1.2 var(--f-body);color:var(--accent)}
+.card{background:var(--panel);border:0;border-top:3px solid var(--accent);border-radius:2px;box-shadow:var(--shadow);padding:10px 12px;display:flex;flex-direction:column;gap:10px}
+h2{margin:0;font:400 17px/1.2 var(--f-display);text-transform:uppercase;color:var(--accent)}
+textarea,input{font:inherit;color:var(--ink);background:var(--soft);border:1px solid var(--line);border-radius:2px;padding:10px;width:100%}
+textarea{resize:vertical;min-height:70px;line-height:1.45}
+#src{min-height:0;height:44px;resize:none;font-size:12px;line-height:1.3;padding:6px 8px;overflow:hidden}
+textarea:focus-visible,input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button,.btn{font:600 15px/1.1 var(--f-body);border-radius:2px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:13px 14px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-align:center}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+
+.shiftRow{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.shiftRow button{font-family:var(--f-mono);font-weight:500;padding:9px 2px}
+.shiftRow button[aria-pressed="true"]{background:var(--steel);border-color:var(--steel);color:var(--panel)}
+.shiftRow input{grid-column:1/-1;font-family:var(--f-mono);min-width:0}
+
+#toggle{width:100%;font-size:16px;padding:12px;text-transform:uppercase;letter-spacing:.5px}
+#toggle .cnt{font:500 12px/1 var(--f-mono);background:var(--accent-ink);color:var(--accent);text-transform:none;border-radius:10px;padding:3px 7px}
+.group h3{margin:14px 0 2px;font:400 18px/1.2 var(--f-display);text-transform:uppercase;color:var(--accent)}
+.group ul{list-style:none;margin:0;padding:0}
+.group li{border-top:1px solid var(--line);padding:10px 0;display:flex;flex-direction:column;gap:8px}
+.frow{display:flex;align-items:center;gap:10px}
+.frow{cursor:pointer}
+.frow .t{flex:1;min-width:0}
+.tri{flex:0 0 26px;height:26px;padding:0;font:700 15px/1 var(--f-body);border-radius:4px;background:var(--panel);color:var(--muted);border:2px solid var(--muted)}
+.tri[data-st="edit"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.tri[data-st="off"]{background:var(--soft);border-color:var(--line);color:var(--bad)}
+.group li.off .name,.group li.off .cur{opacity:.45;text-decoration:line-through}
+.ck{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
+.ck input{width:22px;height:22px;flex:0 0 22px;margin:1px 0 0;padding:0;accent-color:var(--accent)}
+.ck .t{display:flex;flex-direction:column;min-width:0}
+.ck .name{font-weight:600}
+.ck .cur{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ck .cur.bad{color:var(--bad)}
+.ed{padding-left:36px;display:flex;flex-direction:column;gap:6px}
+.fix{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.fix .pre,.fix .suf{font-size:14px;color:var(--muted)}
+.fix input{flex:1 1 120px;min-width:0}
+.fix input.n{flex:0 1 110px;font-family:var(--f-mono);font-size:17px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.seg button{padding:11px 6px}
+.seg.st{flex:1 1 160px;grid-auto-flow:column;grid-auto-columns:1fr;grid-template-columns:none}
+.cas{display:flex;flex-direction:column;gap:6px}
+.cas .pre{min-width:78px}
+.seg.nums button{font-family:var(--f-mono)}
+.seg.st button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.seg button.c[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:var(--panel)}
+.seg button.n[aria-pressed="true"]{background:var(--bad);border-color:var(--bad);color:var(--panel)}
+
+#out{min-height:240px;font-size:13.5px}
+.bar{display:flex;gap:8px;flex-wrap:wrap}
+.bar>*{flex:1 1 150px}
+.status{font-size:13px;color:var(--ok);margin:0}
+@media (prefers-reduced-motion:no-preference){button{transition:filter .15s}button:active{filter:brightness(.92)}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="logo" id="logo" aria-label="FIL">FIL</div>
+    <div class="htitle"><h1>Report turno</h1><p id="heroSub">&nbsp;</p></div>
+  </header>
+
+  <section class="card">
+    <textarea id="src" spellcheck="false" aria-label="Report precedente" placeholder="Incolla il report precedente"></textarea>
+  </section>
+
+  <section class="card">
+    <button class="primary" id="toggle" type="button" aria-expanded="false">Modifica <span class="cnt" id="cnt" hidden></span></button>
+    <div id="panel" hidden>
+      <div class="group"><h3>Turno e data</h3>
+        <div class="shiftRow" id="shiftRow">
+          <button type="button" data-i="0">6-14</button>
+          <button type="button" data-i="1">14-22</button>
+          <button type="button" data-i="2">22-6</button>
+          <input type="date" id="date" aria-label="Data">
+        </div>
+      </div>
+      <div id="groups"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Messaggio pronto</h2>
+    <button class="primary" id="gen" type="button" hidden>Genera messaggio</button>
+    <textarea id="out" readonly aria-label="Messaggio pronto"></textarea>
+    <div class="bar">
+      <button class="primary" id="copy" type="button">Copia</button>
+      <a class="btn" id="wa" href="#" target="_blank" rel="noopener">Apri in WhatsApp</a>
+    </div>
+    <p class="status" id="status" role="status" hidden></p>
+  </section>
+</div>
+
+<script>
+/* ---------- i campi (le "celle") ---------- */
+// pre/suf = testo fisso intorno al box; opt = se lo lasci vuoto la riga sparisce
+const DIFF_PRE = 'Emissioni diffuse (discagliatore, spianatrice, taglio lamiere e treno di laminazione):';
+const FIELDS = [
+  { g:'Produzione', id:'prod',      name:'Produzione',            type:'num',  pre:'Produzione', suf:'ton' },
+  { g:'Produzione', id:'ritardi',   name:'Ritardi',               type:'text', opt:true },
+  { g:'Produzione', id:'copertura', name:'Copertura schede',      type:'time', pre:'Copertura schede fino alle', opt:true },
+  { g:'Controllo magazzino', id:'pacchiMag',   name:'Pacchi in magazzino',          type:'num', re:/^pacchi\s+in\s+magazzino/i },
+  { g:'Controllo magazzino', id:'pacchiSped',  name:'Pacchi spedibili',             type:'num', re:/^pacchi\s+spedibili/i },
+  { g:'Controllo magazzino', id:'intest',      name:'Intestature a terra',          type:'num', re:/^intestature/i },
+  { g:'Controllo magazzino', id:'montalbetti', name:'Cassone Montalbetti',          type:'cassoni', re:/montalbetti/i },
+  { g:'Controllo magazzino', id:'risaliti',    name:'Cassone Risaliti',             type:'cassoni', re:/risaliti/i },
+  { g:'Controllo magazzino', id:'scoriaM',     name:'Cassone scoria',               type:'cassoni', re:/scoria/i },
+  { g:'Controllo magazzino', id:'bancali',     name:'Bancali talloni',              type:'numtext', re:/^bancali/i },
+  { g:'Controllo magazzino', id:'talloni',     name:'Talloni da tagliare',          type:'num', re:/^talloni/i },
+  { g:'Controllo magazzino', id:'bloccate',    name:'Lamiere bloccate nel pulpito', type:'num', re:/bloccate/i },
+  { g:'Reparto taglio bramme', id:'taglio',    name:'Bramme tagliate',              type:'num', re:/^bramme\s+tagliate/i },
+  { g:'Reparto taglio bramme', id:'scoriaB',   name:'Cassone scoria',               type:'cassoni', re:/scoria/i },
+  { g:'Sicurezza',  id:'dpi',       name:'DPI e procedure',       type:'line' },
+  { g:'Sicurezza',  id:'pulizia',   name:'Pulizia',               type:'line', pre:'Pulizia:' },
+  { g:'Sicurezza',  id:'violenza',  name:'Violenza',              type:'line' },
+  { g:'Sicurezza',  id:'nearmiss',  name:'Near miss',             type:'line' },
+  { g:'Qualità',    id:'estetica',  name:'Estetica',              type:'conf' },
+  { g:'Qualità',    id:'planarita', name:'Planarità',             type:'conf' },
+  { g:'Qualità',    id:'dimensioni',name:'Larghezze, lunghezze e spessori', type:'conf', plural:true },
+  { g:'Qualità',    id:'noteq',     name:'Note qualità',          type:'text', opt:true },
+  { g:'Ambiente',   id:'scrubber',  name:'Scrubber',              type:'line', pre:'Scrubber' },
+  { g:'Ambiente',   id:'convog',    name:'Emissioni convogliate', type:'line', pre:'Emissioni convogliate' },
+  { g:'Ambiente',   id:'diffuse',   name:'Emissioni diffuse',     type:'line', pre:DIFF_PRE },
+  { g:'Segnalazioni', id:'segn',    name:'Segnalazioni',          type:'text', opt:true },
+];
+const BYID = Object.fromEntries(FIELDS.map(f => [f.id, f]));
+const COMPOSITE = t => t === 'numstate' || t === 'numtext';
+const STATES = ['pieno','metà','vuoto'];
+const DEFAULT = {
+  prod:'', ritardi:'', copertura:'', taglio:'',
+  pacchiMag:'', pacchiSped:'', intest:'', montalbetti:{n:'',s:[]}, risaliti:{n:'',s:[]}, scoriaM:{n:'',s:[]},
+  bancali:{n:'',s:''}, talloni:'', bloccate:'', scoriaB:{n:'',s:[]},
+  dpi:'Tutti i dipendenti hanno indossato correttamente i DPI e rispettato le procedure di sicurezza.',
+  pulizia:'nessuna segnalazione.', violenza:'Nessun atto di violenza nè fisica nè verbale.', nearmiss:'Nessun near miss.',
+  estetica:'c', planarita:'c', dimensioni:'c', noteq:'',
+  scrubber:'in marcia.', convog:'nella norma', diffuse:'nella norma', segn:''
+};
+
+const $ = id => document.getElementById(id);
+let gen = false;           // messaggio generato senza report incollato
+let orig = {};            // campi letti dal report di prima
+let checked = new Set();  // campi spuntati
+let excluded = new Set(); // campi tolti dal messaggio (interruttore ✕)
+const on = id => !excluded.has(id);
+let values = {};          // valori scritti nei box
+
+/* ---------- lettura del report ---------- */
+const BUL = /^\s*[•\-*·]\s*/;
+const SALUTO = /^(buon(giorno|asera|a\s+\w+|\s+\w+)|ciao|salve|ecco)\b[^\n]{0,40}$/i;
+const SECT = /^\s*\*?\s*(controllo\s+magazzino|reparto\s+taglio\s+bramme|sicurezza|qualit[aà]|ambiente|segnalazioni)\s*\*?\s*:?\s*$/i;
+function clean(t){
+  return t.replace(/\r\n?/g,'\n').replace(/[‎‏‪-‮]/g,'')
+    .replace(/^\s*\[\d{1,2}\/\d{1,2}(?:\/\d{2,4})?,?\s+\d{1,2}[:.]\d{2}\]\s*[^:\n]+:\s*/gm,'');
+}
+function readVal(fd, rest){
+  rest = rest.trim().replace(/\.$/,'');
+  if (fd.type === 'num') { const m = rest.match(/\d+(?:[.,]\d+)?/); return m ? m[0] : ''; }
+  if (fd.type === 'cassoni') {
+    const st = (rest.match(/pien\w*|met\w*|vuot\w*/gi) || []).map(k => /^pien/i.test(k) ? 'pieno' : /^met/i.test(k) ? 'metà' : 'vuoto');
+    const n = (rest.match(/^\s*(\d+)/) || [])[1] || (st.length ? String(st.length) : '');
+    return { n, s: st };
+  }
+  if (fd.type === 'state') { const m = rest.match(/pien|met|vuot/i); return m ? ({pien:'pieno', met:'metà', vuot:'vuoto'})[m[0].toLowerCase()] : ''; }
+  const m = rest.match(/^\s*(?:n°?\s*)?(\d+)?\s*[,;-]?\s*(.*)$/i);
+  let st = (m[2] || '').trim();
+  if (fd.type === 'numstate') { const k = st.match(/pien|met|vuot/i); st = k ? ({pien:'pieno', met:'metà', vuot:'vuoto'})[k[0].toLowerCase()] : ''; }
+  return { n: m[1] || '', s: st };
+}
+function parse(text){
+  const f = JSON.parse(JSON.stringify(DEFAULT)); f.xsic = []; f.xamb = [];
+  let lines = clean(text).split('\n');
+  const h = lines.findIndex(l => /report\s+turno/i.test(l));
+  if (h >= 0) lines = lines.slice(h + 1);           // tutto quello prima del titolo (saluti ecc.) si ignora
+  let sec = 'intro', planSet = false;
+  const rit = [], noteq = [], segn = [];
+  const conf = s => /non\s+conform/i.test(s) ? 'n' : 'c';
+  for (const raw of lines) {
+    const l = raw.trim();
+    const m = l.match(SECT);
+    if (m) { sec = m[1].toLowerCase().replace(/\s+/g,' ').replace('qualita','qualità'); continue; }
+    if (!l) continue;
+    const s = l.replace(BUL,'');
+    if (sec === 'intro') {
+      let x;
+      if ((x = s.match(/^\*?produzione\s*:?\s*([\d.,]+)/i))) f.prod = x[1];
+      else if ((x = s.match(/^copertura\s+schede\s*:?\s*(.*)$/i))) { const t = x[1].match(/(\d{1,2})\s*[.:,]\s*(\d{2})|(\d{1,2})(?!\d)/); f.copertura = t ? (t[1] ? `${p2(t[1])}:${t[2]}` : `${p2(t[3])}:00`) : ''; }
+      else if ((x = s.match(/taglio\s+bramme\s*:?\s*(\d+)/i))) f.taglio = x[1];
+      else if (/taglio\s+bramme/i.test(s)) f.taglio = '';
+      else if (!SALUTO.test(s)) rit.push(s);
+    } else if (sec === 'controllo magazzino' || sec === 'reparto taglio bramme') {
+      const g = sec === 'controllo magazzino' ? 'Controllo magazzino' : 'Reparto taglio bramme';
+      const fd = FIELDS.find(x => x.g === g && x.re && x.re.test(s));
+      if (fd) f[fd.id] = readVal(fd, s.includes(':') ? s.slice(s.indexOf(':') + 1) : s.replace(fd.re, ''));
+    } else if (sec === 'sicurezza') {
+      if (/dpi/i.test(s)) f.dpi = s;
+      else if (/^pulizia/i.test(s)) f.pulizia = s.replace(/^pulizia\s*:?\s*/i,'');
+      else if (/violenza/i.test(s)) f.violenza = s;
+      else if (/near\s*miss/i.test(s)) f.nearmiss = s;
+      else f.xsic.push(s);          // voce non riconosciuta: si ricopia com'è
+    } else if (sec === 'qualità') {
+      if (/^estetica/i.test(s)) f.estetica = conf(s);
+      else if (/^planarit[aà]\s+(non\s+)?conform[ei]\.?$/i.test(s)) { f.planarita = conf(s); planSet = true; }
+      else if (/^planarit/i.test(s) && !planSet) {
+        // formato vecchio "planarità sul 25 mm accettabile": campo conforme + frase nelle note
+        f.planarita = conf(s); planSet = true;
+        noteq.push(s.charAt(0).toUpperCase() + s.slice(1));
+      }
+      else if (/^(larghezz|lunghezz|spessor)/i.test(s)) f.dimensioni = conf(s);
+      else noteq.push(s);
+    } else if (sec === 'ambiente') {
+      if (/^scrubber/i.test(s)) f.scrubber = s.replace(/^scrubber\s*/i,'');
+      else if (/convogliate/i.test(s)) f.convog = s.replace(/^.*?convogliate\s*:?\s*/i,'');
+      else if (/diffuse/i.test(s)) f.diffuse = s.includes(':') ? s.slice(s.lastIndexOf(':')+1).trim() : s.replace(/^.*?diffuse\s*(\([^)]*\))?\s*/i,'');
+      else f.xamb.push(s);
+    } else if (sec === 'segnalazioni') segn.push(l);
+  }
+  f.ritardi = rit.join('\n'); f.noteq = noteq.join('\n'); f.segn = segn.join('\n');
+  return f;
+}
+
+/* ---------- turno e data dall'ora del telefono ---------- */
+const SHIFTS = ['6-14','14-22','22-6'];
+function autoShift(now){
+  const h = now.getHours(), d = new Date(now);
+  let s;
+  if (h >= 10 && h < 18) s = 0;                                               // intorno alle 14 → 6-14
+  else if (h >= 18 || h < 2) { s = 1; if (h < 2) d.setDate(d.getDate()-1); }  // intorno alle 22 → 14-22
+  else s = 2;                                                                 // intorno alle 6 → 22-6, data della mattina
+  return { s, d };
+}
+const p2 = n => String(n).padStart(2,'0');
+const isoDate = d => `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;
+let shift = 0, manual = false;
+function paintShift(){ document.querySelectorAll('#shiftRow button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.i === shift)); }
+document.querySelectorAll('#shiftRow button').forEach(b => b.onclick = () => { shift = +b.dataset.i; manual = true; paintShift(); update(); });
+function setNow(){ const a = autoShift(new Date()); shift = a.s; $('date').value = isoDate(a.d); paintShift(); }
+
+/* ---------- messaggio nuovo ---------- */
+// quanti cassoni: il numero scritto nel box, altrimenti quello di prima, altrimenti 1
+function quanti(id){ const x = values[id] || {}; return Math.min(20, +(x.n || '').trim() || +(orig[id] || {}).n || 1); }
+function v(id){
+  const t = BYID[id].type;
+  if (t === 'cassoni') {
+    const o = orig[id] || {n:'', s:[]};
+    if (!checked.has(id)) return o;
+    const x = values[id] || {};
+    const n = quanti(id);
+    return { n: String(n), s: Array.from({length:n}, (_, i) => (x.s || [])[i] || o.s[i] || '') };
+  }
+  if (COMPOSITE(t)) {
+    const o = orig[id] || {n:'',s:''};
+    if (!checked.has(id)) return o;
+    const x = values[id] || {};
+    return { n: (x.n || '').trim() || o.n, s: (x.s || '').trim() || o.s };
+  }
+  if (!checked.has(id)) return orig[id] || '';
+  if (t === 'state') return values[id] || orig[id] || '';
+  const x = values[id] || '';
+  if (BYID[id].type === 'conf') return x || orig[id];
+  return x.trim() ? x : (BYID[id].opt ? '' : orig[id] || '');
+}
+const confTxt = (x, plural) => (x === 'n' ? 'non ' : '') + (plural ? 'conformi' : 'conforme');
+const oraTxt = t => { const [h, m] = t.split(':'); return `${+h}.${m}`; };
+const lines = s => (s || '').split('\n').map(x => x.trim()).filter(Boolean);
+const fmt = (f, x) => f.type === 'cassoni' ? (x.n ? `${x.n} (${x.s.map(k => k || '–').join(', ')})` : '') : COMPOSITE(f.type) ? [x.n, x.s].filter(Boolean).join(', ') : (x || '').trim();
+function block(title, g){
+  const rows = FIELDS.filter(f => f.g === g && on(f.id)).map(f => [f, fmt(f, v(f.id))]).filter(r => r[1]);
+  return rows.length ? ['', title, ...rows.map(([f, x]) => `• ${f.name}: ${x}`)] : [];
+}
+function build(){
+  const [, m, d] = ($('date').value || isoDate(new Date())).split('-');
+  const L = [`*Report turno ${SHIFTS[shift]} del ${d}/${m}*`];
+  if (on('prod') && v('prod')) L.push(`Produzione ${v('prod').trim()} ton`);
+  if (on('ritardi')) L.push(...lines(v('ritardi')));
+  if (on('copertura') && v('copertura').trim()) L.push(`Copertura schede fino alle ${oraTxt(v('copertura').trim())}`);
+  L.push(...block('Controllo magazzino', 'Controllo magazzino'));
+  L.push(...block('Reparto taglio bramme', 'Reparto taglio bramme'));
+  const sez = (title, rows) => { rows = rows.filter(Boolean); if (rows.length) L.push('', title, ...rows); };
+  sez('Sicurezza', [on('dpi') && '• ' + v('dpi').trim(), on('pulizia') && '• Pulizia: ' + v('pulizia').trim(),
+    on('violenza') && '• ' + v('violenza').trim(), on('nearmiss') && '• ' + v('nearmiss').trim(), ...(orig.xsic || []).map(x => '• ' + x)]);
+  sez('Qualità', [on('estetica') && '• estetica ' + confTxt(v('estetica')), on('planarita') && '• planarità ' + confTxt(v('planarita')),
+    on('dimensioni') && '• larghezze, lunghezze e spessori ' + confTxt(v('dimensioni'), true),
+    ...(on('noteq') ? lines(v('noteq')).map(x => '• ' + x.replace(BUL,'')) : [])]);
+  sez('Ambiente', [on('scrubber') && 'Scrubber ' + v('scrubber').trim(), on('convog') && 'Emissioni convogliate ' + v('convog').trim(),
+    on('diffuse') && DIFF_PRE + ' ' + v('diffuse').trim(), ...(orig.xamb || [])]);
+  if (on('segn')) L.push('', 'Segnalazioni:', v('segn').trim() || 'Nessuna');
+  return L.join('\n');
+}
+
+/* ---------- interfaccia ---------- */
+function show(f, x){
+  if (f.type === 'conf') return confTxt(x, f.plural);
+  if (f.id === 'prod') return x ? x + ' ton' : '—';
+  if (f.re) return fmt(f, x) || '—';
+  if (f.type === 'time') return x ? 'fino alle ' + oraTxt(x) : '—';
+  const l = lines(x)[0];
+  return l || '—';
+}
+function el(tag, cls, txt){ const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+function renderFields(){
+  const box = $('groups'); box.innerHTML = '';
+  let grp = null, ul = null;
+  FIELDS.forEach(f => {
+    if (f.g !== grp) {
+      grp = f.g;
+      const g = el('div','group'); g.append(el('h3', null, grp)); ul = el('ul'); g.append(ul); box.append(g);
+    }
+    const li = el('li');
+    // un solo quadratino a 3 stati: vuoto = com'era, ✎ = da modificare (box aperto), ✕ = tolto dal messaggio
+    const top = el('div','frow ck');
+    const tri = el('button','tri'); tri.type = 'button'; tri.id = 'ck-' + f.id;
+    const t = el('span','t'); t.append(el('span','name', f.name));
+    const cur = el('span','cur', show(f, orig[f.id])); if (f.type === 'conf' && orig[f.id] === 'n') cur.classList.add('bad');
+    t.append(cur); top.append(tri, t); li.append(top);
+    const ed = el('div','ed');
+    const stato = () => excluded.has(f.id) ? 'off' : checked.has(f.id) ? 'edit' : 'keep';
+    const paint = () => { const st = stato(); tri.dataset.st = st; tri.textContent = st === 'edit' ? '✎' : st === 'off' ? '✕' : '';
+      tri.setAttribute('aria-label', f.name + ': ' + (st === 'edit' ? 'da modificare' : st === 'off' ? 'tolto dal messaggio' : 'come prima'));
+      li.classList.toggle('off', st === 'off'); ed.hidden = st !== 'edit'; };
+    let focusEl;
+    if (f.type === 'conf') {
+      const seg = el('div','seg');
+      const bc = el('button','c', confTxt('c', f.plural)), bn = el('button','n', confTxt('n', f.plural));
+      bc.type = bn.type = 'button';
+      const paint = () => { const x = values[f.id] || orig[f.id]; bc.setAttribute('aria-pressed', x === 'c'); bn.setAttribute('aria-pressed', x === 'n'); };
+      bc.onclick = () => { values[f.id] = 'c'; paint(); update(); };
+      bn.onclick = () => { values[f.id] = 'n'; paint(); update(); };
+      paint(); seg.append(bc, bn); ed.append(seg); focusEl = bc;
+    } else if (f.type === 'cassoni') {
+      const cur = () => values[f.id] || (values[f.id] = { n:'', s:[] });
+      const row = el('div','fix');
+      row.append(el('span','pre','N° cassoni'));
+      const n = el('input'); n.type = 'text'; n.inputMode = 'numeric'; n.className = 'n'; n.id = 'in-' + f.id;
+      n.placeholder = (orig[f.id] || {}).n || '1';
+      const rows = el('div','cas');
+      const draw = () => {
+        rows.innerHTML = '';
+        for (let i = 0; i < quanti(f.id); i++) {
+          const r = el('div','fix'); r.append(el('span','pre', 'Cassone ' + (i + 1)));
+          const seg = el('div','seg st');
+          const shown = () => cur().s[i] || (orig[f.id] || {s:[]}).s[i];
+          const bs = STATES.map(k => { const b = el('button', null, k); b.type = 'button';
+            b.onclick = () => { cur().s[i] = k; paint(); update(); }; return b; });
+          const paint = () => bs.forEach((b, j) => b.setAttribute('aria-pressed', shown() === STATES[j]));
+          paint(); seg.append(...bs); r.append(seg); rows.append(r);
+        }
+      };
+      n.addEventListener('input', () => { cur().n = n.value.replace(/\D/g,''); draw(); update(); });
+      row.append(n); draw(); ed.append(row, rows); focusEl = n;
+    } else if (f.type === 'state' || f.type === 'numstate' || f.type === 'numtext') {
+      const row = el('div','fix');
+      const cur = () => values[f.id] !== undefined ? values[f.id] : (COMPOSITE(f.type) ? {n:'',s:''} : '');
+      if (f.nums) {
+        const segN = el('div','seg st nums');
+        const bn = f.nums.map(k => { const b = el('button', null, String(k)); b.type = 'button'; b.onclick = () => {
+          values[f.id] = { ...cur(), n: String(k) }; paintN(); update(); }; return b; });
+        const paintN = () => { const x = cur().n || (orig[f.id] || {}).n; bn.forEach((b, i) => b.setAttribute('aria-pressed', x === String(f.nums[i]))); };
+        paintN(); segN.append(...bn); row.append(segN); focusEl = bn[0];
+      } else if (COMPOSITE(f.type)) {
+        const n = el('input'); n.type = 'text'; n.inputMode = 'numeric'; n.className = 'n'; n.placeholder = 'n°'; n.id = 'in-' + f.id;
+        n.addEventListener('input', () => { values[f.id] = { ...cur(), n: n.value }; update(); });
+        row.append(n); focusEl = n;
+      }
+      if (f.type === 'numtext') {
+        const st = el('input'); st.type = 'text'; st.placeholder = 'stato'; st.id = 'st-' + f.id;
+        st.addEventListener('input', () => { values[f.id] = { ...cur(), s: st.value }; update(); });
+        row.append(st);
+      } else {
+        const seg = el('div','seg st');
+        const shown = () => { const x = cur(); const o = orig[f.id]; return f.type === 'state' ? (x || o) : (x.s || o.s); };
+        const ST = f.states || STATES;
+        const bs = ST.map(k => { const b = el('button', null, k); b.type = 'button'; b.onclick = () => {
+          values[f.id] = f.type === 'state' ? k : { ...cur(), s: k }; paint(); update(); }; return b; });
+        const paint = () => bs.forEach((b, i) => b.setAttribute('aria-pressed', shown() === ST[i]));
+        paint(); seg.append(...bs); row.append(seg);
+        if (!focusEl) focusEl = bs[0];
+      }
+      ed.append(row);
+    } else {
+      focusEl = f.type === 'text' ? el('textarea') : el('input');
+      focusEl.id = 'in-' + f.id;
+      if (f.type === 'text') focusEl.rows = 3;
+      else if (f.type === 'time') { focusEl.type = 'time'; focusEl.className = 'n'; }
+      else { focusEl.type = 'text'; if (f.type === 'num') { focusEl.inputMode = 'decimal'; focusEl.className = 'n'; } }
+      focusEl.value = values[f.id] || '';
+      focusEl.addEventListener('input', () => { values[f.id] = focusEl.value; update(); });
+      if (f.pre || f.suf) {
+        const row = el('div','fix');
+        if (f.pre) row.append(el('span','pre', f.pre));
+        row.append(focusEl);
+        if (f.suf) row.append(el('span','suf', f.suf));
+        ed.append(row);
+      } else ed.append(focusEl);
+    }
+    top.onclick = () => {
+      const st = stato();
+      if (st === 'keep') checked.add(f.id);
+      else if (st === 'edit') { checked.delete(f.id); excluded.add(f.id); }
+      else excluded.delete(f.id);
+      paint(); update();
+      if (stato() === 'edit') focusEl.focus();
+    };
+    paint();
+    li.append(ed); ul.append(li);
+  });
+}
+function fit(e){ e.style.height = 'auto'; e.style.height = Math.max(240, e.scrollHeight + 4) + 'px'; }
+function update(){
+  const [, mm, dd] = ($('date').value || isoDate(new Date())).split('-');
+  $('heroSub').textContent = `Turno ${SHIFTS[shift]} del ${dd}/${mm}`;
+  const has = $('src').value.trim() !== '';
+  $('gen').hidden = has || gen;                 // senza report incollato si genera da zero col tasto
+  const text = has || gen ? build() : '';
+  $('out').value = text; fit($('out'));
+  $('wa').href = 'https://wa.me/?text=' + encodeURIComponent(text);
+  $('status').hidden = true;
+  const n = checked.size;
+  $('cnt').hidden = !n; $('cnt').textContent = n;
+}
+const PRESENTE = { prod:/produzione/i, dpi:/dpi/i, pulizia:/pulizia/i, violenza:/violenza/i, nearmiss:/near\s*miss/i,
+  estetica:/estetica/i, planarita:/planarit/i, dimensioni:/larghezz|lunghezz|spessor/i,
+  scrubber:/scrubber/i, convog:/convogliate/i, diffuse:/diffuse/i, segn:/segnalazioni/i };
+function load(text){
+  orig = parse(text || ''); checked = new Set(); values = {}; manual = false;
+  excluded = new Set(text && text.trim() ? Object.keys(PRESENTE).filter(id => !PRESENTE[id].test(text)) : []);
+  setNow(); renderFields(); update();
+}
+
+$('src').addEventListener('input', () => { if ($('src').value.trim()) gen = false; load($('src').value); });
+$('gen').onclick = () => { gen = true; update(); };
+$('date').addEventListener('change', () => { manual = true; update(); });
+$('toggle').onclick = () => {
+  const open = $('panel').hidden;
+  $('panel').hidden = !open; $('toggle').setAttribute('aria-expanded', open);
+};
+$('copy').onclick = () => {
+  const text = $('out').value; if (!text) return;
+  const say = m => { $('status').textContent = m; $('status').hidden = false; };
+  const fallback = () => { const o = $('out'); o.focus(); o.select(); try { document.execCommand('copy') ? say('Copiato') : say('Tieni premuto e scegli Copia'); } catch(e) { say('Tieni premuto e scegli Copia'); } };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => say('Copiato'), fallback); else fallback();
+};
+// se l'app resta aperta, turno e data si riallineano all'ora quando torni sull'app (se non hai ancora spuntato niente)
+document.addEventListener('visibilitychange', () => { if (!document.hidden && !manual) { setNow(); update(); } });
+
+load('');
+</script>

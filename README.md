@@ -1,10 +1,11 @@
-# Report turno FIL A.S.Q
+# Report turno FIL
 
-App in un solo file (`index.html`) per preparare il report di fine turno da mandare su WhatsApp.
+App per preparare il report di fine turno da mandare sul gruppo WhatsApp.
 
 1. Copi da WhatsApp il report del turno prima e lo incolli nell'app.
-2. Turno e data si aggiornano da soli in base all'ora (si possono cambiare).
-3. Spunti solo i campi cambiati (produzione, ritardi, taglio bramme, sicurezza, qualità, ambiente, segnalazioni) e scrivi i valori nuovi.
-4. Copi il messaggio pronto e lo incolli su WhatsApp.
+2. Turno e data si mettono da soli in base all'ora.
+3. Premi **Modifica**: per ogni campo il quadratino vuoto = com'era, ✎ = da cambiare, ✕ = tolto.
+4. Premi **Copia** (o **Apri in WhatsApp**) e invii.
 
-Nessuna installazione: basta aprire `index.html` nel browser.
+App installabile: https://lucacavo92-wq.github.io/report-turno/ (Chrome → ⋮ → Installa app).
+Per chi lavora sul codice: vedi `CLAUDE.md`.
