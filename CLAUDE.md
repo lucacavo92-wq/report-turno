@@ -9,7 +9,7 @@ Ogni turno si manda sul gruppo WhatsApp "FIL A.S.Q" un report quasi sempre ugual
 ## File
 - `index.html`: tutta l'app in un solo file (HTML + CSS + JS), con logo e foto incorporati.
 - App installabile (PWA) su GitHub Pages: https://lucacavo92-wq.github.io/report-turno/
-  `manifest.webmanifest`, `sw.js` (funziona anche offline, prima prova la rete), icone `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`.
+  `manifest.webmanifest`, `sw.js` (funziona anche offline, prima prova la rete), logo `logo.svg`, icone `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`.
   Se cambi i file salvati offline, aumenta la versione `CACHE` in `sw.js`.
 - Pubblicata anche come pagina Claude (senza logo vero): https://claude.ai/artifact/2kxs19zG365LzmRw4w3SV5
 
@@ -32,8 +32,8 @@ Ogni turno si manda sul gruppo WhatsApp "FIL A.S.Q" un report quasi sempre ugual
 - Intestazione: logo in alto a sinistra, "FIL", "Report turno". Titolo del messaggio in grassetto: `*Report turno 14-22 del 28/09*`.
 
 ## Da fare
-- Grafica stile sito FIL fatta (blu #2884ff, Open Sans, schede con bordo blu in alto). Logo `logo.png` ritagliato da uno
-  screenshot del sito (bassa risoluzione): se Luca manda il file originale, sostituirlo. Nel file `index.html` il logo è
-  incorporato; la pagina Claude pubblicata ha solo un quadrato "FIL" al posto del logo.
+- Grafica stile sito FIL (blu #2884ff, Open Sans, schede bianche con bordo blu in alto). Intestazione: barra bianca con logo FIL
+  a sinistra e accanto "REPORT TURNO" + turno/data. Logo `logo.svg` ridisegnato dalla foto della carta intestata del 29/09
+  (blu #3a7fc1 con "FI", nero con "L", lettere bianche strette). La pagina Claude pubblicata ha un quadrato "FIL" al posto del logo.
 - Luca deve ancora provare Copia e Apri in WhatsApp.
 - Serve repository pubblico + Pages acceso (Settings → Pages → main / root) per l'indirizzo github.io.
