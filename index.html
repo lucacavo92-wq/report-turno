@@ -62,9 +62,11 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--a
 .group ul{list-style:none;margin:0;padding:0}
 .group li{border-top:1px solid var(--line);padding:10px 0;display:flex;flex-direction:column;gap:8px}
 .frow{display:flex;align-items:center;gap:10px}
-.frow .ck{flex:1;min-width:0}
-.sw{flex:0 0 28px;height:28px;padding:0;font:700 15px/1 var(--f-body);border-radius:6px;background:var(--soft);color:var(--muted);border:1px solid var(--line)}
-.sw[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:#fff}
+.frow{cursor:pointer}
+.frow .t{flex:1;min-width:0}
+.tri{flex:0 0 26px;height:26px;padding:0;font:700 15px/1 var(--f-body);border-radius:4px;background:var(--panel);color:var(--muted);border:2px solid var(--muted)}
+.tri[data-st="edit"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.tri[data-st="off"]{background:var(--soft);border-color:var(--line);color:var(--bad)}
 .group li.off .name,.group li.off .cur{opacity:.45;text-decoration:line-through}
 .ck{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
 .ck input{width:22px;height:22px;flex:0 0 22px;margin:1px 0 0;padding:0;accent-color:var(--accent)}
@@ -72,7 +74,7 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--a
 .ck .name{font-weight:600}
 .ck .cur{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ck .cur.bad{color:var(--bad)}
-.ed{padding-left:72px;display:flex;flex-direction:column;gap:6px}
+.ed{padding-left:36px;display:flex;flex-direction:column;gap:6px}
 .fix{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .fix .pre,.fix .suf{font-size:14px;color:var(--muted)}
 .fix input{flex:1 1 120px;min-width:0}
@@ -348,19 +350,17 @@ function renderFields(){
       const g = el('div','group'); g.append(el('h3', null, grp)); ul = el('ul'); g.append(ul); box.append(g);
     }
     const li = el('li');
-    const lab = el('label','ck');
-    const cb = el('input'); cb.type = 'checkbox'; cb.id = 'ck-' + f.id; cb.checked = checked.has(f.id);
+    // un solo quadratino a 3 stati: vuoto = com'era, ✎ = da modificare (box aperto), ✕ = tolto dal messaggio
+    const top = el('div','frow ck');
+    const tri = el('button','tri'); tri.type = 'button'; tri.id = 'ck-' + f.id;
     const t = el('span','t'); t.append(el('span','name', f.name));
     const cur = el('span','cur', show(f, orig[f.id])); if (f.type === 'conf' && orig[f.id] === 'n') cur.classList.add('bad');
-    t.append(cur); lab.append(cb, t);
-    const top = el('div','frow');
-    const sw = el('button','sw'); sw.type = 'button';
-    const paintSw = () => { const x = on(f.id); sw.setAttribute('aria-pressed', x); sw.textContent = x ? '✓' : '✕';
-      sw.setAttribute('aria-label', (x ? 'Togli ' : 'Rimetti ') + f.name); li.classList.toggle('off', !x); };
-    sw.onclick = () => { excluded.has(f.id) ? excluded.delete(f.id) : excluded.add(f.id); paintSw(); update(); };
-    top.append(sw, lab); li.append(top); paintSw();
-
-    const ed = el('div','ed'); ed.hidden = !cb.checked;
+    t.append(cur); top.append(tri, t); li.append(top);
+    const ed = el('div','ed');
+    const stato = () => excluded.has(f.id) ? 'off' : checked.has(f.id) ? 'edit' : 'keep';
+    const paint = () => { const st = stato(); tri.dataset.st = st; tri.textContent = st === 'edit' ? '✎' : st === 'off' ? '✕' : '';
+      tri.setAttribute('aria-label', f.name + ': ' + (st === 'edit' ? 'da modificare' : st === 'off' ? 'tolto dal messaggio' : 'come prima'));
+      li.classList.toggle('off', st === 'off'); ed.hidden = st !== 'edit'; };
     let focusEl;
     if (f.type === 'conf') {
       const seg = el('div','seg');
@@ -436,11 +436,15 @@ function renderFields(){
         ed.append(row);
       } else ed.append(focusEl);
     }
-    cb.addEventListener('change', () => {
-      if (cb.checked) checked.add(f.id); else checked.delete(f.id);
-      ed.hidden = !cb.checked; update();
-      if (cb.checked) focusEl.focus();
-    });
+    top.onclick = () => {
+      const st = stato();
+      if (st === 'keep') checked.add(f.id);
+      else if (st === 'edit') { checked.delete(f.id); excluded.add(f.id); }
+      else excluded.delete(f.id);
+      paint(); update();
+      if (stato() === 'edit') focusEl.focus();
+    };
+    paint();
     li.append(ed); ul.append(li);
   });
 }

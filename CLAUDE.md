@@ -24,11 +24,12 @@ Ogni turno si manda sul gruppo WhatsApp "FIL A.S.Q" un report quasi sempre ugual
   Sicurezza: DPI e procedure, Pulizia, Violenza, Near miss;
   Qualità: Estetica, Planarità, Larghezze/lunghezze/spessori (ognuno **Conforme / Non conforme**) + Note qualità (testo libero;
   es. "Planarità sul 25 mm accettabile" va nelle note); Ambiente: Scrubber, Emissioni convogliate, Emissioni diffuse; Segnalazioni.
-- Tasto grosso **Modifica** → elenco campi con il valore attuale; spuntando si apre un **box vuoto** con il testo fisso intorno.
+- Tasto grosso **Modifica** → elenco campi con il valore attuale; con ✎ si apre un **box vuoto** con il testo fisso intorno.
   Box vuoto: Ritardi / Copertura / Note qualità spariscono, Segnalazioni diventa "Nessuna", gli altri restano come prima.
 - Home: solo casella per incollare (piccola), tasto **Modifica**, messaggio pronto. Turno e data stanno dentro Modifica.
-- A sinistra di ogni campo un interruttore piccolo **✓ verde / ✕ grigio**: con ✕ il campo non esce nel messaggio. Le voci fisse che mancano
-  nel report incollato partono già su ✕; un gruppo con tutto su ✕ sparisce anche come titolo.
+- Ogni campo ha **un solo quadratino a 3 stati** (si tocca il quadratino o il nome): vuoto = resta com'era,
+  **✎ blu** = da modificare (si apre il box vuoto), **✕** = tolto dal messaggio. Le voci fisse che mancano nel report
+  incollato partono già su ✕; un gruppo con tutto su ✕ sparisce anche come titolo.
 - Se non è incollato niente compare il tasto **Genera messaggio** (messaggio da zero con i valori standard + le modifiche).
 - Righe prima di "Report turno" (saluti tipo "Buongiorno") si ignorano.
 - App **pulita**: niente esempi, descrizioni o numeri dei passi (la usano persone esperte).
