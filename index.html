@@ -157,7 +157,7 @@ const FIELDS = [
 ];
 const BYID = Object.fromEntries(FIELDS.map(f => [f.id, f]));
 const COMPOSITE = t => t === 'numstate' || t === 'numtext';
-const STATES = ['pieno','vuoto'];
+const STATES = ['pieno','metà','vuoto'];
 const DEFAULT = {
   prod:'', ritardi:'', copertura:'', taglio:'',
   pacchiMag:'', pacchiSped:'', intest:'', montalbetti:{n:'',s:''}, risaliti:{n:'',s:''}, scoriaM:'',
@@ -184,7 +184,7 @@ function clean(t){
 function readVal(fd, rest){
   rest = rest.trim().replace(/\.$/,'');
   if (fd.type === 'num') { const m = rest.match(/\d+(?:[.,]\d+)?/); return m ? m[0] : ''; }
-  if (fd.type === 'state') { const m = rest.match(/pien|vuot/i); return m ? (m[0].toLowerCase() === 'pien' ? 'pieno' : 'vuoto') : ''; }
+  if (fd.type === 'state') { const m = rest.match(/pien|met|vuot/i); return m ? ({pien:'pieno', met:'metà', vuot:'vuoto'})[m[0].toLowerCase()] : ''; }
   const m = rest.match(/^\s*(?:n°?\s*)?(\d+)?\s*[,;-]?\s*(.*)$/i);
   let st = (m[2] || '').trim();
   if (fd.type === 'numstate') { const k = st.match(/pien|met|vuot/i); st = k ? ({pien:'pieno', met:'metà', vuot:'vuoto'})[k[0].toLowerCase()] : ''; }
