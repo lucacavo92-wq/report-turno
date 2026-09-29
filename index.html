@@ -69,6 +69,8 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--a
 .fix input.n{flex:0 1 110px;font-family:var(--f-mono);font-size:17px}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .seg button{padding:11px 6px}
+.seg.st{flex:1 1 160px}
+.seg.st button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .seg button.c[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:var(--panel)}
 .seg button.n[aria-pressed="true"]{background:var(--bad);border-color:var(--bad);color:var(--panel)}
 
@@ -127,7 +129,17 @@ const FIELDS = [
   { g:'Produzione', id:'prod',      name:'Produzione',            type:'num',  pre:'Produzione', suf:'ton' },
   { g:'Produzione', id:'ritardi',   name:'Ritardi',               type:'text', opt:true },
   { g:'Produzione', id:'copertura', name:'Copertura schede',      type:'line', pre:'Copertura schede', opt:true },
-  { g:'Produzione', id:'taglio',    name:'Reparto taglio bramme', type:'num',  pre:'Reparto taglio bramme:' },
+  { g:'Controllo magazzino', id:'pacchiMag',   name:'Pacchi in magazzino',          type:'num', re:/^pacchi\s+in\s+magazzino/i },
+  { g:'Controllo magazzino', id:'pacchiSped',  name:'Pacchi spedibili',             type:'num', re:/^pacchi\s+spedibili/i },
+  { g:'Controllo magazzino', id:'intest',      name:'Intestature a terra',          type:'num', re:/^intestature/i },
+  { g:'Controllo magazzino', id:'montalbetti', name:'Cassone Montalbetti',          type:'numstate', re:/montalbetti/i },
+  { g:'Controllo magazzino', id:'risaliti',    name:'Cassone Risaliti',             type:'numstate', re:/risaliti/i },
+  { g:'Controllo magazzino', id:'scoriaM',     name:'Cassone scoria',               type:'state', re:/scoria/i },
+  { g:'Controllo magazzino', id:'bancali',     name:'Bancali talloni',              type:'numtext', re:/^bancali/i },
+  { g:'Controllo magazzino', id:'talloni',     name:'Talloni da tagliare',          type:'num', re:/^talloni/i },
+  { g:'Controllo magazzino', id:'bloccate',    name:'Lamiere bloccate nel pulpito', type:'num', re:/bloccate/i },
+  { g:'Reparto taglio bramme', id:'taglio',    name:'Bramme tagliate',              type:'num', re:/^bramme\s+tagliate/i },
+  { g:'Reparto taglio bramme', id:'scoriaB',   name:'Cassone scoria',               type:'state', re:/scoria/i },
   { g:'Sicurezza',  id:'dpi',       name:'DPI e procedure',       type:'line' },
   { g:'Sicurezza',  id:'pulizia',   name:'Pulizia',               type:'line', pre:'Pulizia:' },
   { g:'Sicurezza',  id:'violenza',  name:'Violenza',              type:'line' },
@@ -142,8 +154,12 @@ const FIELDS = [
   { g:'Segnalazioni', id:'segn',    name:'Segnalazioni',          type:'text', opt:true },
 ];
 const BYID = Object.fromEntries(FIELDS.map(f => [f.id, f]));
+const COMPOSITE = t => t === 'numstate' || t === 'numtext';
+const STATES = ['pieno','vuoto'];
 const DEFAULT = {
   prod:'', ritardi:'', copertura:'', taglio:'',
+  pacchiMag:'', pacchiSped:'', intest:'', montalbetti:{n:'',s:''}, risaliti:{n:'',s:''}, scoriaM:'',
+  bancali:{n:'',s:''}, talloni:'', bloccate:'', scoriaB:'',
   dpi:'Tutti i dipendenti hanno indossato correttamente i DPI e rispettato le procedure di sicurezza.',
   pulizia:'nessuna segnalazione.', violenza:'Nessun atto di violenza nè fisica nè verbale.', nearmiss:'Nessun near miss.',
   estetica:'c', planarita:'c', dimensioni:'c', noteq:'',
@@ -158,13 +174,22 @@ let values = {};          // valori scritti nei box
 /* ---------- lettura del report ---------- */
 const BUL = /^\s*[•\-*·]\s*/;
 const SALUTO = /^(buon(giorno|asera|a\s+\w+|\s+\w+)|ciao|salve|ecco)\b[^\n]{0,40}$/i;
-const SECT = /^\s*\*?\s*(sicurezza|qualit[aà]|ambiente|segnalazioni)\s*\*?\s*:?\s*$/i;
+const SECT = /^\s*\*?\s*(controllo\s+magazzino|reparto\s+taglio\s+bramme|sicurezza|qualit[aà]|ambiente|segnalazioni)\s*\*?\s*:?\s*$/i;
 function clean(t){
   return t.replace(/\r\n?/g,'\n').replace(/[‎‏‪-‮]/g,'')
     .replace(/^\s*\[\d{1,2}\/\d{1,2}(?:\/\d{2,4})?,?\s+\d{1,2}[:.]\d{2}\]\s*[^:\n]+:\s*/gm,'');
 }
+function readVal(fd, rest){
+  rest = rest.trim().replace(/\.$/,'');
+  if (fd.type === 'num') { const m = rest.match(/\d+(?:[.,]\d+)?/); return m ? m[0] : ''; }
+  if (fd.type === 'state') { const m = rest.match(/pien|vuot/i); return m ? (m[0].toLowerCase() === 'pien' ? 'pieno' : 'vuoto') : ''; }
+  const m = rest.match(/^\s*(?:n°?\s*)?(\d+)?\s*[,;-]?\s*(.*)$/i);
+  let st = (m[2] || '').trim();
+  if (fd.type === 'numstate') { const k = st.match(/pien|vuot/i); st = k ? (k[0].toLowerCase() === 'pien' ? 'pieno' : 'vuoto') : ''; }
+  return { n: m[1] || '', s: st };
+}
 function parse(text){
-  const f = { ...DEFAULT, xsic:[], xamb:[] };
+  const f = JSON.parse(JSON.stringify(DEFAULT)); f.xsic = []; f.xamb = [];
   let lines = clean(text).split('\n');
   const h = lines.findIndex(l => /report\s+turno/i.test(l));
   if (h >= 0) lines = lines.slice(h + 1);           // tutto quello prima del titolo (saluti ecc.) si ignora
@@ -174,7 +199,7 @@ function parse(text){
   for (const raw of lines) {
     const l = raw.trim();
     const m = l.match(SECT);
-    if (m) { sec = m[1].toLowerCase().replace('qualita','qualità'); continue; }
+    if (m) { sec = m[1].toLowerCase().replace(/\s+/g,' ').replace('qualita','qualità'); continue; }
     if (!l) continue;
     const s = l.replace(BUL,'');
     if (sec === 'intro') {
@@ -184,6 +209,10 @@ function parse(text){
       else if ((x = s.match(/taglio\s+bramme\s*:?\s*(\d+)/i))) f.taglio = x[1];
       else if (/taglio\s+bramme/i.test(s)) f.taglio = '';
       else if (!SALUTO.test(s)) rit.push(s);
+    } else if (sec === 'controllo magazzino' || sec === 'reparto taglio bramme') {
+      const g = sec === 'controllo magazzino' ? 'Controllo magazzino' : 'Reparto taglio bramme';
+      const fd = FIELDS.find(x => x.g === g && x.re && x.re.test(s));
+      if (fd) f[fd.id] = readVal(fd, s.includes(':') ? s.slice(s.indexOf(':') + 1) : s.replace(fd.re, ''));
     } else if (sec === 'sicurezza') {
       if (/dpi/i.test(s)) f.dpi = s;
       else if (/^pulizia/i.test(s)) f.pulizia = s.replace(/^pulizia\s*:?\s*/i,'');
@@ -230,20 +259,34 @@ function setNow(){ const a = autoShift(new Date()); shift = a.s; $('date').value
 
 /* ---------- messaggio nuovo ---------- */
 function v(id){
+  const t = BYID[id].type;
+  if (COMPOSITE(t)) {
+    const o = orig[id] || {n:'',s:''};
+    if (!checked.has(id)) return o;
+    const x = values[id] || {};
+    return { n: (x.n || '').trim() || o.n, s: (x.s || '').trim() || o.s };
+  }
   if (!checked.has(id)) return orig[id] || '';
+  if (t === 'state') return values[id] || orig[id] || '';
   const x = values[id] || '';
   if (BYID[id].type === 'conf') return x || orig[id];
   return x.trim() ? x : (BYID[id].opt ? '' : orig[id] || '');
 }
 const confTxt = (x, plural) => (x === 'n' ? 'non ' : '') + (plural ? 'conformi' : 'conforme');
 const lines = s => (s || '').split('\n').map(x => x.trim()).filter(Boolean);
+const fmt = (f, x) => COMPOSITE(f.type) ? [x.n, x.s].filter(Boolean).join(', ') : (x || '').trim();
+function block(title, g){
+  const rows = FIELDS.filter(f => f.g === g).map(f => [f, fmt(f, v(f.id))]).filter(r => r[1]);
+  return rows.length ? ['', title, ...rows.map(([f, x]) => `• ${f.name}: ${x}`)] : [];
+}
 function build(){
   const [, m, d] = ($('date').value || isoDate(new Date())).split('-');
   const L = [`*Report turno ${SHIFTS[shift]} del ${d}/${m}*`];
   if (v('prod')) L.push(`Produzione ${v('prod').trim()} ton`);
   L.push(...lines(v('ritardi')));
   if (v('copertura').trim()) L.push(`Copertura schede ${v('copertura').trim()}`);
-  L.push('', `Reparto taglio bramme: ${v('taglio').trim() || '0'}`);
+  L.push(...block('Controllo magazzino', 'Controllo magazzino'));
+  L.push(...block('Reparto taglio bramme', 'Reparto taglio bramme'));
   L.push('', 'Sicurezza');
   L.push('• ' + v('dpi').trim(), '• Pulizia: ' + v('pulizia').trim(), '• ' + v('violenza').trim(), '• ' + v('nearmiss').trim());
   (orig.xsic || []).forEach(x => L.push('• ' + x));
@@ -265,6 +308,7 @@ function build(){
 function show(f, x){
   if (f.type === 'conf') return confTxt(x, f.plural);
   if (f.id === 'prod') return x ? x + ' ton' : '—';
+  if (f.re) return fmt(f, x) || '—';
   const l = lines(x)[0];
   return l || '—';
 }
@@ -294,6 +338,28 @@ function renderFields(){
       bc.onclick = () => { values[f.id] = 'c'; paint(); update(); };
       bn.onclick = () => { values[f.id] = 'n'; paint(); update(); };
       paint(); seg.append(bc, bn); ed.append(seg); focusEl = bc;
+    } else if (f.type === 'state' || f.type === 'numstate' || f.type === 'numtext') {
+      const row = el('div','fix');
+      const cur = () => values[f.id] !== undefined ? values[f.id] : (COMPOSITE(f.type) ? {n:'',s:''} : '');
+      if (COMPOSITE(f.type)) {
+        const n = el('input'); n.type = 'text'; n.inputMode = 'numeric'; n.className = 'n'; n.placeholder = 'n°'; n.id = 'in-' + f.id;
+        n.addEventListener('input', () => { values[f.id] = { ...cur(), n: n.value }; update(); });
+        row.append(n); focusEl = n;
+      }
+      if (f.type === 'numtext') {
+        const st = el('input'); st.type = 'text'; st.placeholder = 'stato'; st.id = 'st-' + f.id;
+        st.addEventListener('input', () => { values[f.id] = { ...cur(), s: st.value }; update(); });
+        row.append(st);
+      } else {
+        const seg = el('div','seg st');
+        const shown = () => { const x = cur(); const o = orig[f.id]; return f.type === 'state' ? (x || o) : (x.s || o.s); };
+        const bs = STATES.map(k => { const b = el('button', null, k); b.type = 'button'; b.onclick = () => {
+          values[f.id] = f.type === 'state' ? k : { ...cur(), s: k }; paint(); update(); }; return b; });
+        const paint = () => bs.forEach((b, i) => b.setAttribute('aria-pressed', shown() === STATES[i]));
+        paint(); seg.append(...bs); row.append(seg);
+        if (!focusEl) focusEl = bs[0];
+      }
+      ed.append(row);
     } else {
       focusEl = f.type === 'text' ? el('textarea') : el('input');
       focusEl.id = 'in-' + f.id;

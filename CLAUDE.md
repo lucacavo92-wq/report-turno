@@ -13,7 +13,12 @@ Ogni turno si manda sul gruppo WhatsApp "FIL A.S.Q" un report quasi sempre ugual
 ## Decisioni prese (29/09/2026)
 - Turni: **6-14, 14-22, 22-6**. Il report è del turno appena finito, scelto dall'ora del telefono:
   10:00–17:59 → 6-14; 18:00–01:59 → 14-22 (dopo mezzanotte data del giorno prima); 02:00–09:59 → 22-6 con la **data della mattina**.
-- Campi: Produzione (ton), Ritardi, Copertura schede, Reparto taglio bramme (numero bramme tagliate);
+- Campi: Produzione (ton), Ritardi, Copertura schede;
+  Controllo magazzino (dal foglio di Luca del 29/09): Pacchi in magazzino, Pacchi spedibili, Intestature a terra (numeri),
+  Cassone Montalbetti e Cassone Risaliti (n° + Pieno/Vuoto), Cassone scoria (Pieno/Vuoto), Bancali talloni (n° + stato scritto),
+  Talloni da tagliare, Lamiere bloccate nel pulpito (numeri);
+  Reparto taglio bramme: Bramme tagliate (numero), Cassone scoria (Pieno/Vuoto). Righe vuote non escono nel messaggio.
+  Da confermare con Luca: significato del n° dei cassoni, stati dei bancali, se talloni/lamiere bloccate sono numeri;
   Sicurezza: DPI e procedure, Pulizia, Violenza, Near miss;
   Qualità: Estetica, Planarità, Larghezze/lunghezze/spessori (ognuno **Conforme / Non conforme**) + Note qualità (testo libero;
   es. "Planarità sul 25 mm accettabile" va nelle note); Ambiente: Scrubber, Emissioni convogliate, Emissioni diffuse; Segnalazioni.
