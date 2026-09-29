@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Report Turno FIL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: una colonna da telefono, passi in verticale: incolla → turno → cosa è cambiato → messaggio pronto */
+:root{
+  --bg:#eef1f3; --panel:#ffffff; --ink:#1b242b; --muted:#5d6b75; --line:#d3dade;
+  --steel:#2f4a5c; --accent:#d9861c; --accent-ink:#1b242b; --ok:#2e7d4f; --soft:#f5f7f8;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12181c; --panel:#1b2329; --ink:#e4e9ec; --muted:#95a3ac; --line:#2e3a42;
+  --steel:#8fb3c9; --accent:#f0a340; --accent-ink:#12181c; --ok:#5cc28a; --soft:#161d22; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12181c; --panel:#1b2329; --ink:#e4e9ec; --muted:#95a3ac; --line:#2e3a42;
+  --steel:#8fb3c9; --accent:#f0a340; --accent-ink:#12181c; --ok:#5cc28a; --soft:#161d22; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);padding-inline:16px;padding-block:18px 40px}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header h1{font:700 26px/1.1 var(--f-display);margin:0;letter-spacing:.2px;text-wrap:balance}
+header p{margin:4px 0 0;color:var(--muted);font-size:14px}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.step h2{margin:0;font:700 13px/1.2 var(--f-display);text-transform:uppercase;letter-spacing:1.2px;color:var(--steel);display:flex;gap:8px;align-items:baseline}
+.step h2 .n{font-family:var(--f-mono);color:var(--accent)}
+.hint{margin:0;color:var(--muted);font-size:13px}
+textarea,input,select{font:inherit;color:var(--ink);background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px;width:100%}
+textarea{resize:vertical;min-height:90px;line-height:1.45}
+#src{min-height:150px;font-size:13.5px}
+textarea:focus-visible,input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>*{flex:1 1 140px;min-width:0}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+button,.btn{font:600 15px/1 var(--f-body);border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:12px 14px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button.small{font-size:13px;padding:8px 10px}
+.auto{font-size:13px;color:var(--muted)}
+.auto b{color:var(--ink);font-family:var(--f-mono);font-weight:500}
+ul.checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+ul.checks li{border-top:1px solid var(--line);padding:10px 0;display:flex;flex-direction:column;gap:8px}
+ul.checks li:first-child{border-top:0}
+.ck{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
+.ck input{width:22px;height:22px;flex:0 0 22px;margin:1px 0 0;accent-color:var(--accent)}
+.ck .t{display:flex;flex-direction:column;min-width:0}
+.ck .name{font-weight:600}
+.ck .cur{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ed{padding-left:34px;display:flex;flex-direction:column;gap:6px}
+.ed .num{display:flex;align-items:center;gap:8px}
+.ed .num input{max-width:140px;font-family:var(--f-mono)}
+.tag{font:500 11px/1 var(--f-mono);text-transform:uppercase;letter-spacing:.8px;padding:4px 6px;border-radius:4px;background:var(--soft);border:1px solid var(--line);color:var(--muted)}
+.tag.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+#out{min-height:260px;font-size:13.5px;background:var(--soft)}
+.status{font-size:13px;color:var(--ok);min-height:1.2em;margin:0}
+.bar{display:flex;gap:8px;flex-wrap:wrap}
+.bar>*{flex:1 1 150px}
+.linkish{background:none;border:0;padding:0;color:var(--steel);font:500 13px var(--f-body);text-decoration:underline;cursor:pointer}
+@media (prefers-reduced-motion:no-preference){button{transition:filter .15s}button:active{filter:brightness(.92)}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Report turno FIL A.S.Q</h1>
+    <p>Incolla il report del turno prima, spunta solo quello che è cambiato, copia e invia.</p>
+  </header>
+
+  <section class="step">
+    <h2><span class="n">1</span>Report precedente</h2>
+    <p class="hint" id="srcHint">Su WhatsApp tieni premuto il messaggio → Copia. Poi incollalo qui sotto.</p>
+    <textarea id="src" spellcheck="false" aria-label="Report precedente"></textarea>
+    <div class="row">
+      <button class="small" id="clear" type="button">Svuota per incollare</button>
+      <button class="small" id="useLast" type="button" hidden>Usa il mio ultimo report</button>
+    </div>
+  </section>
+
+  <section class="step">
+    <h2><span class="n">2</span>Turno e data</h2>
+    <p class="auto" id="autoInfo"></p>
+    <div class="row">
+      <label class="f">Turno<select id="shift"></select></label>
+      <label class="f">Data<input type="date" id="date"></label>
+    </div>
+  </section>
+
+  <section class="step">
+    <h2><span class="n">3</span>Cosa è cambiato?</h2>
+    <p class="hint">Se non spunti niente, il report resta uguale a quello prima (con turno e data nuovi).</p>
+    <ul class="checks" id="checks"></ul>
+  </section>
+
+  <section class="step">
+    <h2><span class="n">4</span>Messaggio pronto</h2>
+    <textarea id="out" readonly aria-label="Messaggio pronto"></textarea>
+    <div class="bar">
+      <button class="primary" id="copy" type="button">Copia messaggio</button>
+      <a class="btn" id="wa" href="#" target="_blank" rel="noopener">Apri in WhatsApp</a>
+    </div>
+    <p class="status" id="status" role="status"></p>
+  </section>
+</div>
+
+<script>
+const ESEMPIO = `*Report turno 14-22 del 28/09
+Produzione 398 ton
+Ritardo 15 min terzo turno pe4 perdita banco valvola 1
+Copertura schede fino alle 7.30
+
+Reparto taglio bramme : 9
+
+Sicurezza
+• Tutti i dipendenti hanno indossato correttamente i DPI e rispettato le procedure di sicurezza.
+• Pulizia: nessuna segnalazione.
+• Nessun atto di violenza nè fisica nè verbale.
+• Nessun near miss.
+
+Qualità
+• estetica conforme
+• planarità sul 25 mm accettabile.
+• larghezze, lunghezze e spessori conformi
+• Segni spianatrice ambo i lati.
+
+Ambiente
+Scrubber in marcia.
+Emissioni convogliate nella norma
+Emissioni diffuse (discagliatore, spianatrice, taglio lamiere e treno di laminazione): nella norma
+
+Segnalazioni:
+Nessuna a fine turno milo a cambiato nuovamente il senso del filtro motore gabbia superioe perché dava di nuovo filtro intasato.
+Giacobbe e Contento  hanno bilanciato  la pressione`;
+
+const SHIFTS = [[6,14],[14,22],[22,6]];
+const KEY = 'reportTurnoFIL.ultimo';
+const $ = id => document.getElementById(id);
+const store = {
+  get(){ try { return localStorage.getItem(KEY); } catch(e){ return null; } },
+  set(v){ try { localStorage.setItem(KEY, v); } catch(e){} }
+};
+
+let model = null;          // messaggio letto
+let checked = new Set();   // campi spuntati
+let values = {};           // valori nuovi dei campi
+
+/* ---------- lettura del messaggio ---------- */
+function clean(text){
+  return text.replace(/\r\n?/g,'\n').replace(/[‎‏‪-‮]/g,'')
+    // riga "[28/09, 22:40] Nome Cognome: " che WhatsApp aggiunge quando copi più messaggi
+    .replace(/^\s*\[\d{1,2}\/\d{1,2}(?:\/\d{2,4})?,?\s+\d{1,2}[:.]\d{2}\]\s*[^:\n]+:\s*/,'')
+    .replace(/^\s*\n/,'');
+}
+const isBlank = s => !s || !s.trim();
+const KNOWN = /^(sicurezza|qualit[aà]|ambiente|segnalazioni|manutenzione|note)\s*:?\s*$/i;
+function isTitle(lines, i){
+  const s = (lines[i]||'').trim();
+  if (!s || i === 0 || !isBlank(lines[i-1]) || isBlank(lines[i+1])) return false;
+  if (KNOWN.test(s)) return true;
+  return s.length <= 25 && !/\d/.test(s) && !/^[•\-*·]/.test(s) && !/[.;]$/.test(s);
+}
+const trimEnd = arr => { while (arr.length && isBlank(arr[arr.length-1])) arr.pop(); return arr; };
+
+function parse(text){
+  const lines = clean(text).split('\n');
+  const h = lines.findIndex(l => !isBlank(l));
+  if (h < 0) return null;
+  const header = lines[h];
+  const rest = lines.slice(h+1);
+  const intro = [], sections = [];
+  let cur = null;
+  rest.forEach((l, i) => {
+    if (isTitle(rest, i)) { cur = { title:l.trim(), body:[] }; sections.push(cur); }
+    else if (cur) cur.body.push(l);
+    else intro.push(l);
+  });
+  const items = trimEnd(intro).map(raw => {
+    if (/^\s*\*?\s*produzione\b/i.test(raw)) return { kind:'prod', raw };
+    if (/taglio\s+bramme/i.test(raw)) return { kind:'taglio', raw };
+    if (isBlank(raw)) return { kind:'blank', raw:'' };
+    return { kind:'note', raw };
+  });
+  sections.forEach(s => s.body = trimEnd(s.body).join('\n'));
+  const m = header.match(/turno\s*(\d{1,2})\s*[-–]\s*(\d{1,2})/i);
+  const d = header.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/);
+  return {
+    header, items, sections,
+    pad: m ? m[1].length === 2 && m[1][0] === '0' : false,
+    prevShift: m ? `${+m[1]}-${+m[2]}` : null,
+    yearLen: d && d[3] ? d[3].length : 0,
+    prevDate: d ? d[0] : null
+  };
+}
+const numIn = s => { const m = (s||'').match(/\d+(?:[.,]\d+)?/); return m ? m[0] : ''; };
+
+/* ---------- campi da spuntare ---------- */
+function fields(){
+  if (!model) return [];
+  const f = [];
+  const prod = model.items.find(x => x.kind === 'prod');
+  if (prod) f.push({ id:'prod', name:'Produzione', type:'num', unit:'ton', orig:numIn(prod.raw) });
+  const notes = model.items.filter(x => x.kind === 'note').map(x => x.raw).join('\n');
+  f.push({ id:'note', name:'Ritardi e note del turno', type:'text', orig:notes });
+  const tg = model.items.find(x => x.kind === 'taglio');
+  if (tg) f.push({ id:'taglio', name:'Reparto taglio bramme', type:'num', unit:'', orig:numIn(tg.raw.split(':').pop()) || numIn(tg.raw) });
+  model.sections.forEach((s, i) => f.push({ id:'s'+i, name:s.title.replace(/:\s*$/,''), type:'text', orig:s.body }));
+  return f;
+}
+const val = (id, orig) => checked.has(id) && values[id] !== undefined ? values[id] : orig;
+
+/* ---------- turno e data automatici ---------- */
+function autoShift(now){
+  const h = now.getHours() + now.getMinutes()/60;
+  const d = new Date(now);
+  let s;
+  if (h >= 10 && h < 18) s = 0;               // 6-14, si manda a fine turno
+  else if (h >= 18 || h < 2) { s = 1; if (h < 2) d.setDate(d.getDate()-1); }
+  else { s = 2; d.setDate(d.getDate()-1); }   // 22-6: data del giorno in cui inizia
+  return { s, d };
+}
+const p2 = n => String(n).padStart(2,'0');
+const isoDate = d => `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;
+function shiftLabel(i){ const [a,b] = SHIFTS[i]; return model && model.pad ? `${p2(a)}-${p2(b)}` : `${a}-${b}`; }
+function dateLabel(){
+  const [y,m,d] = ($('date').value || isoDate(new Date())).split('-');
+  const yl = model ? model.yearLen : 0;
+  return `${d}/${m}` + (yl === 4 ? '/'+y : yl === 2 ? '/'+y.slice(2) : '');
+}
+
+/* ---------- messaggio nuovo ---------- */
+function build(){
+  if (!model) return '';
+  const sh = shiftLabel(+$('shift').value), dt = dateLabel();
+  let header = model.header;
+  if (/turno\s*\d{1,2}\s*[-–]\s*\d{1,2}/i.test(header)) header = header.replace(/(turno\s*)\d{1,2}\s*[-–]\s*\d{1,2}/i, '$1'+sh);
+  if (/\d{1,2}\/\d{1,2}(?:\/\d{2,4})?/.test(header)) header = header.replace(/\d{1,2}\/\d{1,2}(?:\/\d{2,4})?/, dt);
+
+  const F = Object.fromEntries(fields().map(f => [f.id, f]));
+  const out = [];
+  let notesDone = false;
+  const pushNotes = () => { notesDone = true; const t = val('note', F.note.orig).trim(); if (t) out.push(...t.split('\n')); };
+  model.items.forEach(it => {
+    if (it.kind === 'prod') {
+      const v = val('prod', F.prod.orig);
+      out.push(F.prod.orig ? it.raw.replace(F.prod.orig, v) : `Produzione ${v} ton`);
+      if (!model.items.some(x => x.kind === 'note') && !notesDone) pushNotes();
+    } else if (it.kind === 'taglio') {
+      const v = val('taglio', F.taglio.orig), o = F.taglio.orig;
+      out.push(o ? it.raw.replace(new RegExp(o.replace('.','\\.')+'(?!.*\\d)'), v) : `${it.raw} ${v}`);
+    } else if (it.kind === 'note') { if (!notesDone) pushNotes(); }
+    else out.push('');
+  });
+  if (!notesDone) { const t = val('note', F.note.orig).trim(); if (t) out.unshift(...t.split('\n')); }
+  let text = [header, ...trimEnd(out.filter((l, i, a) => !(isBlank(l) && isBlank(a[i-1]))))].join('\n');
+  model.sections.forEach((s, i) => {
+    const body = val('s'+i, s.body).replace(/\s+$/,'');
+    text += '\n\n' + s.title + (body ? '\n' + body : '');
+  });
+  return text;
+}
+
+/* ---------- interfaccia ---------- */
+function short(s){ const l = (s||'').split('\n').find(x => x.trim()) || '—'; return l.trim(); }
+function renderChecks(){
+  const ul = $('checks'); ul.innerHTML = '';
+  fields().forEach(f => {
+    const li = document.createElement('li');
+    const on = checked.has(f.id);
+    const cur = f.type === 'num' ? `${f.orig || '—'} ${f.unit}`.trim() : short(f.orig);
+    li.innerHTML = `<label class="ck"><input type="checkbox" id="ck-${f.id}" ${on?'checked':''}>
+      <span class="t"><span class="name"></span><span class="cur"></span></span></label>`;
+    li.querySelector('.name').textContent = f.name;
+    li.querySelector('.cur').textContent = 'Prima: ' + cur;
+    const ed = document.createElement('div'); ed.className = 'ed'; ed.hidden = !on;
+    const v = values[f.id] !== undefined ? values[f.id] : f.orig;
+    if (f.type === 'num') {
+      ed.innerHTML = `<div class="num"><input id="in-${f.id}" type="text" inputmode="decimal"><span class="auto"></span></div>`;
+      ed.querySelector('.auto').textContent = f.unit;
+    } else {
+      ed.innerHTML = `<textarea id="in-${f.id}" rows="4"></textarea><div><button type="button" class="linkish">Rimetti come prima</button></div>`;
+      ed.querySelector('button').onclick = () => { values[f.id] = f.orig; inp.value = f.orig; update(); };
+    }
+    const inp = ed.querySelector('#in-'+f.id); inp.value = v;
+    inp.addEventListener('input', () => { values[f.id] = inp.value; update(); });
+    li.querySelector('input[type=checkbox]').addEventListener('change', e => {
+      if (e.target.checked) { checked.add(f.id); if (values[f.id] === undefined) values[f.id] = f.orig; }
+      else checked.delete(f.id);
+      ed.hidden = !e.target.checked; update();
+      if (e.target.checked) { inp.focus(); if (f.type === 'num') inp.select(); }
+    });
+    li.appendChild(ed); ul.appendChild(li);
+  });
+  if (!model) ul.innerHTML = '<li class="hint">Incolla prima il report precedente.</li>';
+}
+function fit(el){ el.style.height = 'auto'; el.style.height = Math.max(260, el.scrollHeight + 4) + 'px'; }
+function update(){
+  const text = build();
+  $('out').value = text; fit($('out'));
+  $('wa').href = 'https://wa.me/?text=' + encodeURIComponent(text);
+  $('status').textContent = '';
+}
+function setAutoInfo(){
+  const a = autoShift(new Date());
+  const prev = model && model.prevShift ? `Prima: <b>${model.prevShift}</b> del <b>${model.prevDate||'—'}</b>. ` : '';
+  $('autoInfo').innerHTML = prev + `Adesso: <b>${shiftLabel(a.s)}</b> del <b>${p2(a.d.getDate())}/${p2(a.d.getMonth()+1)}</b> (dall'ora del telefono, puoi cambiarlo).`;
+}
+function load(text){
+  model = isBlank(text) ? null : parse(text);
+  checked = new Set(); values = {};
+  $('shift').innerHTML = SHIFTS.map((_, i) => `<option value="${i}">${shiftLabel(i)}</option>`).join('');
+  const a = autoShift(new Date());
+  $('shift').value = a.s; $('date').value = isoDate(a.d);
+  setAutoInfo(); renderChecks(); update();
+}
+
+$('src').addEventListener('input', () => load($('src').value));
+$('shift').addEventListener('change', update);
+$('date').addEventListener('change', update);
+$('clear').onclick = () => { $('src').value = ''; load(''); $('src').focus(); };
+$('copy').onclick = () => {
+  const text = $('out').value; if (!text) return;
+  store.set(text);
+  const done = () => { $('status').textContent = 'Copiato. Ora incollalo nel gruppo WhatsApp.'; };
+  const fallback = () => { const o = $('out'); o.focus(); o.select(); try { document.execCommand('copy'); done(); } catch(e) { $('status').textContent = 'Testo selezionato: tieni premuto e scegli Copia.'; } };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
+};
+$('wa').addEventListener('click', () => store.set($('out').value));
+$('useLast').onclick = () => { const l = store.get(); if (l) { $('src').value = l; load(l); } };
+
+const last = store.get();
+if (last) {
+  $('useLast').hidden = false;
+  $('src').value = last;
+  $('srcHint').textContent = 'Qui c\'è il tuo ultimo report. Se l\'ha mandato un collega, svuota e incolla il suo.';
+} else {
+  $('src').value = ESEMPIO;
+  $('srcHint').textContent = 'Esempio dal report del 28/09. Su WhatsApp tieni premuto il messaggio → Copia, poi svuota e incollalo qui.';
+}
+load($('src').value);
+</script>
+</body>
+</html>
