@@ -74,5 +74,8 @@ nero con "L", lettere bianche strette. Il sito FIL è bloccato dalla rete di que
   2. https://github.com/lucacavo92-wq/report-turno/settings/pages → Deploy from a branch → main / (root) → Save
   Poi controllare https://lucacavo92-wq.github.io/report-turno/ e spiegargli: Chrome → ⋮ → Installa app.
   (Claude non può creare repository né cambiare queste impostazioni: GitHub risponde 403.)
+  Claude non ha un browser in queste sessioni: non può cliccare al posto di Luca. Le prove dal telefono erano scomode.
+  **Deciso il 29/09/2026: progetti separati.** Niente sito di Enduro Crono (`enduro-crono/report-turno/`): l'app resta
+  nel suo repository e va su GitHub Pages solo dopo i 2 passaggi qui sopra.
 - Luca deve ancora provare bene **Copia** e **Apri in WhatsApp** sul telefono.
 - Bancali talloni: se gli stati sono sempre gli stessi, trasformarli in tasti.
