@@ -63,7 +63,7 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--a
 .group li{border-top:1px solid var(--line);padding:10px 0;display:flex;flex-direction:column;gap:8px}
 .frow{display:flex;align-items:center;gap:10px}
 .frow .ck{flex:1;min-width:0}
-.sw{flex:0 0 38px;height:38px;padding:0;font:700 18px/1 var(--f-body);border-radius:6px;background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+.sw{flex:0 0 28px;height:28px;padding:0;font:700 15px/1 var(--f-body);border-radius:6px;background:var(--soft);color:var(--muted);border:1px solid var(--line)}
 .sw[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:#fff}
 .group li.off .name,.group li.off .cur{opacity:.45;text-decoration:line-through}
 .ck{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
@@ -72,7 +72,7 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--a
 .ck .name{font-weight:600}
 .ck .cur{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ck .cur.bad{color:var(--bad)}
-.ed{padding-left:34px;display:flex;flex-direction:column;gap:6px}
+.ed{padding-left:72px;display:flex;flex-direction:column;gap:6px}
 .fix{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .fix .pre,.fix .suf{font-size:14px;color:var(--muted)}
 .fix input{flex:1 1 120px;min-width:0}
@@ -358,7 +358,7 @@ function renderFields(){
     const paintSw = () => { const x = on(f.id); sw.setAttribute('aria-pressed', x); sw.textContent = x ? '✓' : '✕';
       sw.setAttribute('aria-label', (x ? 'Togli ' : 'Rimetti ') + f.name); li.classList.toggle('off', !x); };
     sw.onclick = () => { excluded.has(f.id) ? excluded.delete(f.id) : excluded.add(f.id); paintSw(); update(); };
-    top.append(lab, sw); li.append(top); paintSw();
+    top.append(sw, lab); li.append(top); paintSw();
 
     const ed = el('div','ed'); ed.hidden = !cb.checked;
     let focusEl;

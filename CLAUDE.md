@@ -27,7 +27,7 @@ Ogni turno si manda sul gruppo WhatsApp "FIL A.S.Q" un report quasi sempre ugual
 - Tasto grosso **Modifica** → elenco campi con il valore attuale; spuntando si apre un **box vuoto** con il testo fisso intorno.
   Box vuoto: Ritardi / Copertura / Note qualità spariscono, Segnalazioni diventa "Nessuna", gli altri restano come prima.
 - Home: solo casella per incollare (piccola), tasto **Modifica**, messaggio pronto. Turno e data stanno dentro Modifica.
-- Accanto a ogni campo un interruttore **✓ verde / ✕ grigio**: con ✕ il campo non esce nel messaggio. Le voci fisse che mancano
+- A sinistra di ogni campo un interruttore piccolo **✓ verde / ✕ grigio**: con ✕ il campo non esce nel messaggio. Le voci fisse che mancano
   nel report incollato partono già su ✕; un gruppo con tutto su ✕ sparisce anche come titolo.
 - Se non è incollato niente compare il tasto **Genera messaggio** (messaggio da zero con i valori standard + le modifiche).
 - Righe prima di "Report turno" (saluti tipo "Buongiorno") si ignorano.
