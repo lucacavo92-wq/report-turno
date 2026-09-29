@@ -109,12 +109,13 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--a
   </section>
 
   <section class="card">
-    <button class="primary" id="toggle" type="button" aria-expanded="false">Modifiche da fare <span class="cnt" id="cnt" hidden></span></button>
+    <button class="primary" id="toggle" type="button" aria-expanded="false">Modifica <span class="cnt" id="cnt" hidden></span></button>
     <div id="panel" hidden><div id="groups"></div></div>
   </section>
 
   <section class="card">
     <h2>Messaggio pronto</h2>
+    <button class="primary" id="gen" type="button" hidden>Genera messaggio</button>
     <textarea id="out" readonly aria-label="Messaggio pronto"></textarea>
     <div class="bar">
       <button class="primary" id="copy" type="button">Copia</button>
@@ -170,6 +171,7 @@ const DEFAULT = {
 };
 
 const $ = id => document.getElementById(id);
+let gen = false;           // messaggio generato senza report incollato
 let orig = {};            // campi letti dal report di prima
 let checked = new Set();  // campi spuntati
 let values = {};          // valori scritti nei box
@@ -436,7 +438,8 @@ function update(){
   const [, mm, dd] = ($('date').value || isoDate(new Date())).split('-');
   $('heroSub').textContent = `Turno ${SHIFTS[shift]} del ${dd}/${mm}`;
   const has = $('src').value.trim() !== '';
-  const text = has ? build() : '';
+  $('gen').hidden = has || gen;                 // senza report incollato si genera da zero col tasto
+  const text = has || gen ? build() : '';
   $('out').value = text; fit($('out'));
   $('wa').href = 'https://wa.me/?text=' + encodeURIComponent(text);
   $('status').hidden = true;
@@ -448,7 +451,8 @@ function load(text){
   setNow(); renderFields(); update();
 }
 
-$('src').addEventListener('input', () => load($('src').value));
+$('src').addEventListener('input', () => { if ($('src').value.trim()) gen = false; load($('src').value); });
+$('gen').onclick = () => { gen = true; update(); };
 $('date').addEventListener('change', () => { manual = true; update(); });
 $('toggle').onclick = () => {
   const open = $('panel').hidden;

@@ -21,8 +21,9 @@ Ogni turno si manda sul gruppo WhatsApp "FIL A.S.Q" un report quasi sempre ugual
   Sicurezza: DPI e procedure, Pulizia, Violenza, Near miss;
   Qualità: Estetica, Planarità, Larghezze/lunghezze/spessori (ognuno **Conforme / Non conforme**) + Note qualità (testo libero;
   es. "Planarità sul 25 mm accettabile" va nelle note); Ambiente: Scrubber, Emissioni convogliate, Emissioni diffuse; Segnalazioni.
-- Tasto grosso **Modifiche da fare** → elenco campi con il valore attuale; spuntando si apre un **box vuoto** con il testo fisso intorno.
+- Tasto grosso **Modifica** → elenco campi con il valore attuale; spuntando si apre un **box vuoto** con il testo fisso intorno.
   Box vuoto: Ritardi / Copertura / Note qualità spariscono, Segnalazioni diventa "Nessuna", gli altri restano come prima.
+- Se non è incollato niente compare il tasto **Genera messaggio** (messaggio da zero con i valori standard + le modifiche).
 - Righe prima di "Report turno" (saluti tipo "Buongiorno") si ignorano.
 - App **pulita**: niente esempi, descrizioni o numeri dei passi (la usano persone esperte).
 - Intestazione: logo in alto a sinistra, "FIL", "Report turno". Titolo del messaggio in grassetto: `*Report turno 14-22 del 28/09*`.
