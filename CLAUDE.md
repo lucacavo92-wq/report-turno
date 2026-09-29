@@ -3,6 +3,10 @@
 Progetto di Luca, separato da Magazzino Bidoni ed Enduro Crono. Scrivere sempre in **italiano**, frasi semplici.
 Luca risponde spesso con "y" = sì/fatto. Usa l'app dal telefono (Android, Chrome): istruzioni passo passo, link già pronti.
 
+**Nome della sessione:** all'inizio di ogni nuova sessione rinominarla (strumento `set_session_title`, senza `session_id`
+si usa `get_session` per avere l'id) con il formato **`FIL_GG-MM-AAAA_HH-MM`**, ora italiana
+(`TZ=Europe/Rome date +"FIL_%d-%m-%Y_%H-%M"`), es. `FIL_29-09-2026_23-26`.
+
 ## A cosa serve
 Ogni turno si manda sul gruppo WhatsApp "FIL A.S.Q" un report quasi sempre uguale. L'app legge il report precedente
 (copiato da WhatsApp), lo divide in campi, aggiorna turno e data e fa cambiare solo i campi scelti.
