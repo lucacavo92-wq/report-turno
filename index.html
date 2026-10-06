@@ -214,6 +214,7 @@ const FIELDS = [
   { g:'Controllo magazzino', id:'intest',      name:'Intestature a terra',          type:'num', re:/^intestature/i },
   { g:'Controllo magazzino', id:'montalbetti', name:'Cassone Montalbetti',          type:'cassoni', re:/montalbetti/i },
   { g:'Controllo magazzino', id:'risaliti',    name:'Cassone Risaliti',             type:'cassoni', re:/risaliti/i },
+  { g:'Controllo magazzino', id:'nostro',      name:'Cassone Nostro',               type:'cassoni', re:/nostro/i },
   { g:'Controllo magazzino', id:'scoriaM',     name:'Cassone scoria',               type:'cassoni', re:/scoria/i },
   { g:'Controllo magazzino', id:'bancali',     name:'Bancali talloni',              type:'numtext', re:/^bancali/i },
   { g:'Controllo magazzino', id:'talloni',     name:'Talloni da tagliare',          type:'num', re:/^talloni/i },
@@ -238,7 +239,7 @@ const COMPOSITE = t => t === 'numstate' || t === 'numtext';
 const STATES = ['vuoto','metà','pieno'];
 const DEFAULT = {
   prod:'', ritardi:'', copertura:'', taglio:'',
-  pacchiMag:'', pacchiSped:'', intest:'', montalbetti:{n:'',s:[]}, risaliti:{n:'',s:[]}, scoriaM:{n:'',s:[]},
+  pacchiMag:'', pacchiSped:'', intest:'', montalbetti:{n:'',s:[]}, risaliti:{n:'',s:[]}, nostro:{n:'',s:[]}, scoriaM:{n:'',s:[]},
   bancali:{n:'',s:''}, talloni:'', bloccate:'', scoriaB:{n:'',s:[]},
   dpi:'Tutti i dipendenti hanno indossato correttamente i DPI e rispettato le procedure di sicurezza.',
   pulizia:'nessuna segnalazione.', violenza:'Nessun atto di violenza nè fisica nè verbale.', nearmiss:'Nessun near miss.',
