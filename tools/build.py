@@ -9,7 +9,7 @@ assert old in s, 'segnaposto del logo non trovato in src/app.html'
 s = s.replace(old, f'    <img class="logofull" src="data:image/svg+xml;base64,{svg}" alt="FIL">')
 head = ('<!doctype html>\n<html lang="it">\n<head>\n<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
-        '<link rel="manifest" href="manifest.webmanifest">\n<meta name="theme-color" content="#2884ff">\n'
+        '<link rel="manifest" href="manifest.webmanifest">\n<meta name="theme-color" content="#12161c">\n'
         '<link rel="icon" href="icon-192.png">\n<link rel="apple-touch-icon" href="apple-touch-icon.png">\n'
         '<meta name="apple-mobile-web-app-capable" content="yes">\n<meta name="apple-mobile-web-app-title" content="Reportistica">\n')
 i = s.index('</style>') + len('</style>')

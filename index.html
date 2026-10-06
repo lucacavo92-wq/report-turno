@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#2884ff">
+<meta name="theme-color" content="#12161c">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -15,53 +15,47 @@
 <style>
 /* Layout: stile sito FIL — barra bianca con logo, schede bianche con bordo blu in alto, blu FIL per i tasti */
 :root{
-  --hero:#2a2f36; --hero-ink:#ffffff; --shadow:0 2px 14px rgba(0,0,0,.12);
-  --bg:#ffffff; --panel:#ffffff; --ink:#3a3a3a; --muted:#6f6f6f; --line:#e1e1e1;
-  --steel:#2884ff; --accent:#2884ff; --accent-ink:#ffffff; --ok:#2e8b57; --bad:#c9372c; --soft:#f7f9fb;
+  --hero:#0b0f14; --hero-ink:#ffffff; --shadow:0 2px 14px rgba(0,0,0,.5);
+  --bg:#12161c; --panel:#1b232c; --ink:#e8ecf0; --muted:#a3adb8; --line:#3a4756;
+  --steel:#2884ff; --accent:#2884ff; --accent-ink:#ffffff; --ok:#4fbf82; --bad:#ef6f63; --soft:#0f1318; color-scheme:dark;
   --f-display:"Open Sans","Noto Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-body:"Open Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-mono:"Roboto Mono",ui-monospace,Menlo,Consolas,monospace;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#11161c; --panel:#1a2129; --hero:#0b0f14; --shadow:0 2px 14px rgba(0,0,0,.5); --ink:#e6eaee; --muted:#9aa5b0; --line:#2c3642;
-  --steel:#6aa8ff; --accent:#3b8eff; --accent-ink:#ffffff; --ok:#4fbf82; --bad:#ef6f63; --soft:#151b22; color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#11161c; --panel:#1a2129; --hero:#0b0f14; --shadow:0 2px 14px rgba(0,0,0,.5); --ink:#e6eaee; --muted:#9aa5b0; --line:#2c3642;
-  --steel:#6aa8ff; --accent:#3b8eff; --accent-ink:#ffffff; --ok:#4fbf82; --bad:#ef6f63; --soft:#151b22; color-scheme:dark}
 *{box-sizing:border-box}
 body{margin:0}
 [hidden]{display:none!important}
-body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body);padding-inline:16px;padding-block:0 40px}
-.wrap{max-width:600px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+body{background:var(--bg);color:var(--ink);font:14.5px/1.4 var(--f-body);padding-inline:16px;padding-block:0 24px}
+.wrap{max-width:600px;margin:0 auto;display:flex;flex-direction:column;gap:6px}
 
 /* barra bianca come il sito */
-header{display:flex;align-items:center;gap:14px;background:var(--panel);border-bottom:3px solid var(--accent);margin-inline:-16px;padding:12px 20px;box-shadow:var(--shadow)}
-.logo{height:58px;min-width:38px;padding:0 6px;background:var(--accent);color:#fff;display:grid;place-items:center;font:700 20px/1 var(--f-display);letter-spacing:1px}
-.logofull{height:58px;width:auto;display:block}
+header{display:flex;align-items:center;gap:12px;background:var(--panel);border-bottom:3px solid var(--accent);margin-inline:-16px;padding:5px 16px;box-shadow:var(--shadow)}
+.logo{height:36px;min-width:38px;padding:0 6px;background:var(--accent);color:#fff;display:grid;place-items:center;font:700 17px/1 var(--f-display);letter-spacing:1px}
+.logofull{height:36px;width:auto;display:block}
 /* titolo nella barra, accanto al logo */
-.htitle{display:flex;flex-direction:column;justify-content:center;min-width:0;border-left:1px solid var(--line);padding-left:14px;align-self:stretch}
-.htitle h1{margin:0;font:400 26px/1.1 var(--f-display);text-transform:uppercase;letter-spacing:.5px;color:var(--ink)}
-.htitle p{margin:3px 0 0;font:600 14px/1.2 var(--f-body);color:var(--accent)}
-.card{background:var(--panel);border:0;border-top:3px solid var(--accent);border-radius:2px;box-shadow:var(--shadow);padding:10px 12px;display:flex;flex-direction:column;gap:10px}
-h2{margin:0;font:400 17px/1.2 var(--f-display);text-transform:uppercase;color:var(--accent)}
-textarea,input{font:inherit;color:var(--ink);background:var(--soft);border:1px solid var(--line);border-radius:2px;padding:10px;width:100%}
-textarea{resize:vertical;min-height:70px;line-height:1.45}
+.htitle{display:flex;flex-direction:column;justify-content:center;min-width:0;border-left:1px solid var(--line);padding-left:12px;align-self:stretch}
+.htitle h1{margin:0;font:400 18px/1.1 var(--f-display);text-transform:uppercase;letter-spacing:.5px;color:var(--ink)}
+.htitle p{margin:1px 0 0;font:600 12.5px/1.2 var(--f-body);color:var(--accent)}
+.card{background:var(--panel);border:0;border-top:3px solid var(--accent);border-radius:2px;box-shadow:var(--shadow);padding:6px 10px 8px;display:flex;flex-direction:column;gap:6px}
+h2{margin:0;font:400 15px/1.2 var(--f-display);text-transform:uppercase;color:var(--accent)}
+textarea,input{font:inherit;color:var(--ink);background:var(--soft);border:1px solid var(--line);border-radius:2px;padding:6px 9px;width:100%;min-height:40px;font-size:15px;scroll-margin:80px 0 140px}
+textarea{resize:vertical;min-height:40px;line-height:1.35;overflow-y:hidden}
 textarea:focus-visible,input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-button,.btn{font:600 15px/1.1 var(--f-body);border-radius:2px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:13px 14px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-align:center}
+button,.btn{font:600 14.5px/1.1 var(--f-body);border-radius:2px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:8px 12px;min-height:40px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-align:center}
 button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 
 .shiftRow{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.shiftRow button{font-family:var(--f-mono);font-weight:500;padding:9px 2px}
+.shiftRow button{font-family:var(--f-mono);font-weight:500;padding:6px 2px}
 .shiftRow button[aria-pressed="true"]{background:var(--steel);border-color:var(--steel);color:var(--panel)}
 .shiftRow input{grid-column:1/-1;font-family:var(--f-mono);min-width:0}
 
-.group h3{margin:14px 0 2px;font:400 18px/1.2 var(--f-display);text-transform:uppercase;color:var(--accent)}
+.group h3{margin:8px 0 0;font:400 15px/1.2 var(--f-display);text-transform:uppercase;color:var(--accent)}
 .group ul{list-style:none;margin:0;padding:0}
-.group li{border-top:1px solid var(--line);padding:10px 0;display:flex;flex-direction:column;gap:8px}
-.frow{display:flex;align-items:center;gap:10px}
+.group li{border-top:1px solid var(--line);padding:5px 0;display:flex;flex-direction:column;gap:4px}
+.frow{display:flex;align-items:center;gap:8px}
 .frow .t{flex:1;min-width:0}
 .frow .name{font-weight:600}
-.tri{flex:0 0 26px;height:26px;padding:0;font:700 15px/1 var(--f-body);border-radius:4px;background:var(--panel);color:var(--muted);border:2px solid var(--muted)}
+.tri{flex:0 0 34px;height:34px;min-height:34px;padding:0;font:700 15px/1 var(--f-body);border-radius:4px;background:var(--panel);color:var(--muted);border:2px solid var(--muted)}
 .tri[data-st="off"]{background:var(--soft);border-color:var(--line);color:var(--bad)}
 .group li.off .name,.group li.off .cur{opacity:.45;text-decoration:line-through}
 .ck{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
@@ -70,41 +64,53 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--a
 .ck .name{font-weight:600}
 .ck .cur{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ck .cur.bad{color:var(--bad)}
-.ed{padding-left:0;display:flex;flex-direction:column;gap:6px}
-.fix{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.fix .pre,.fix .suf{font-size:14px;color:var(--muted)}
+.ed{padding-left:0;display:flex;flex-direction:column;gap:4px}
+.fix{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.fix .pre,.fix .suf{font-size:14px;line-height:1.2;color:var(--muted)}
 .fix input{flex:1 1 120px;min-width:0}
 .fix input.n{flex:0 1 110px;font-family:var(--f-mono);font-size:17px}
-.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.seg button{padding:11px 6px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.seg button{padding:6px 6px}
 .seg.st{flex:1 1 160px;grid-auto-flow:column;grid-auto-columns:1fr;grid-template-columns:none}
-.cas{display:flex;flex-direction:column;gap:6px}
-.cas .pre{min-width:78px}
+.cas{display:flex;flex-direction:column;gap:4px}
+.cas .pre{min-width:72px}
 .seg.nums button{font-family:var(--f-mono)}
 .seg.st button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .seg button.c[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:var(--panel)}
 .seg button.n[aria-pressed="true"]{background:var(--bad);border-color:var(--bad);color:var(--panel)}
 
-#out,#mg-out,#la-out{min-height:240px;font-size:13.5px}
-.view{display:flex;flex-direction:column;gap:10px}
-.backbtn{flex:0 0 40px;width:40px;height:40px;padding:0;font-size:22px;line-height:1;border-radius:2px;background:var(--panel);color:var(--accent);border:1px solid var(--line)}
-.htitle h1.long{font-size:20px}
+#out,#mg-out,#la-out{min-height:100px;max-height:170px;overflow-y:auto;font-size:14px}
+.view{display:flex;flex-direction:column;gap:8px}
+.backbtn{flex:0 0 40px;width:40px;height:40px;min-height:40px;padding:0;font-size:22px;line-height:1;border-radius:2px;background:var(--panel);color:var(--accent);border:1px solid var(--line)}
+.htitle h1.long{font-size:15px}
 body:not([data-view="turno"]) #heroSub{display:none}
-.tiles{display:flex;flex-direction:column;gap:12px;margin-top:6px}
+.tiles{display:flex;flex-direction:column;gap:12px;margin-top:4px}
 .tile{width:100%;min-height:78px;flex-direction:column;gap:4px;font:600 20px/1.2 var(--f-display);text-transform:uppercase;letter-spacing:.5px;border-radius:2px;box-shadow:var(--shadow)}
 .tile small{font:600 12px/1 var(--f-body);text-transform:none;letter-spacing:0}
 .tile:disabled{background:var(--soft);color:var(--muted);border:1px dashed var(--line);box-shadow:none;cursor:not-allowed}
 .fix.multi{align-items:center}
-.fix.multi .pre{flex:0 0 100%}
+.fix.multi .pre{flex:0 0 92px}
 .fix.multi input{flex:1 1 0;min-width:0;font-family:var(--f-mono);font-size:16px}
 .fix.multi .pre.lbl{flex:0 0 auto}
 .lotbar{display:flex;gap:8px;justify-content:space-between;align-items:center}
-.lotbar h3{margin:14px 0 2px}
-.lotbar button{padding:8px 12px;font-size:13px}
-.bar{display:flex;gap:8px;flex-wrap:wrap}
-.bar>*{flex:1 1 150px}
+.lotbar h3{margin:8px 0 0}
+.lotbar button{padding:4px 12px;font-size:13px;min-height:36px}
+.bar{display:flex;gap:6px;flex-wrap:wrap}
+.bar{flex-wrap:nowrap}
+.bar>*{flex:1 1 0;min-width:0}
+.bar>button{flex:0 0 32%;font-size:13.5px}
+.bar>.btn{flex:1 1 0;font-size:15.5px}
 .status{font-size:13px;color:var(--ok);margin:0}
-@media (prefers-reduced-motion:no-preference){button{transition:filter .15s}button:active{filter:brightness(.92)}}
+@media (prefers-reduced-motion:no-preference){button{transition:none}}
+
+/* tasti bombati */
+button,.btn{background:linear-gradient(180deg,#2b3643 0%,#1d2631 100%);border-color:#44536a;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 3px rgba(0,0,0,.55);transition:none}
+button.primary,.tile:not(:disabled),.btn{background:linear-gradient(180deg,#4c9bff 0%,#2884ff 45%,#1b6fe0 100%);border-color:#1558b8;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 2px 4px rgba(0,0,0,.6)}
+.shiftRow button[aria-pressed="true"],.seg.st button[aria-pressed="true"]{background:linear-gradient(180deg,#4c9bff,#2884ff 45%,#1b6fe0);border-color:#1558b8;color:#fff}
+.seg button.c[aria-pressed="true"]{background:linear-gradient(180deg,#6fd39d,#4fbf82 45%,#3a9f69);border-color:#2f8658;color:#08170f}
+.seg button.n[aria-pressed="true"]{background:linear-gradient(180deg,#f58b81,#ef6f63 45%,#d4574b);border-color:#b04439;color:#1d0805}
+button:active,.btn:active{transform:translateY(1px);filter:brightness(.9);box-shadow:inset 0 2px 5px rgba(0,0,0,.55)}
+button:disabled,.tile:disabled{background:#161b21;color:#6d7783;border:1px dashed #333e4a;box-shadow:none;transform:none;filter:none}
 </style>
 </head>
 <body>
@@ -171,7 +177,7 @@ body:not([data-view="turno"]) #heroSub{display:none}
   <div class="view" id="v-lam" hidden>
     <section class="card">
       <div id="la-panel"><div id="la-lots"></div>
-        <button type="button" id="la-add" style="width:100%;margin-top:12px">Aggiungi lotto</button></div>
+        <button type="button" id="la-add" style="width:100%;margin-top:8px">Aggiungi lotto</button></div>
     </section>
     <section class="card">
       <h2>Messaggio pronto</h2>
@@ -474,7 +480,7 @@ function renderFields(){
     } else {
       focusEl = f.type === 'text' ? el('textarea') : el('input');
       focusEl.id = 'in-' + f.id;
-      if (f.type === 'text') focusEl.rows = 3;
+      if (f.type === 'text') focusEl.rows = 1;
       else if (f.type === 'time') { focusEl.type = 'time'; focusEl.className = 'n'; }
       else { focusEl.type = 'text'; if (f.type === 'num') { focusEl.inputMode = 'decimal'; focusEl.className = 'n'; } }
       focusEl.value = values[f.id] || '';
@@ -491,7 +497,13 @@ function renderFields(){
     li.append(ed); ul.append(li);
   });
 }
-function fit(e){ e.style.height = 'auto'; e.style.height = Math.max(240, e.scrollHeight + 4) + 'px'; }
+function fit(e){ e.style.height = 'auto'; e.style.height = Math.max(100, e.scrollHeight + 4) + 'px'; }
+/* box di testo: partono bassi e si allargano se serve; con la tastiera il campo scelto viene portato in vista */
+function grow(e){ if (e.tagName === 'TEXTAREA' && !e.readOnly) { e.style.height = 'auto'; e.style.height = Math.max(40, e.scrollHeight + 2) + 'px'; } }
+document.addEventListener('input', ev => grow(ev.target));
+const growAll = () => document.querySelectorAll('textarea').forEach(grow);
+document.addEventListener('click', () => setTimeout(growAll, 0));
+document.addEventListener('focusin', ev => { const t = ev.target; if (t.matches && t.matches('input,textarea') && !t.readOnly) setTimeout(() => { try { t.scrollIntoView({ block:'center', behavior:'smooth' }); } catch(e) {} }, 300); });
 function update(){
   const [, mm, dd] = ($('date').value || isoDate(new Date())).split('-');
   $('heroSub').textContent = `Turno ${SHIFTS[shift]} del ${dd}/${mm}`;
@@ -535,6 +547,7 @@ function showView(n){
   if (!VIEWS.includes(n)) n = 'home';
   VIEWS.forEach(x => $('v-' + x).hidden = x !== n);
   document.body.dataset.view = n;
+  growAll();
   $('hTitle').textContent = TITLES[n];
   $('hTitle').classList.toggle('long', n === 'mag' || n === 'lam');
   $('back').hidden = n === 'home';
@@ -702,7 +715,7 @@ const MG = (() => {
       let focusEl;
       if (f.type === 'num' || f.type === 'line') {
         focusEl = f.type === 'line' ? el('textarea') : el('input'); focusEl.id = 'mg-in-' + f.id;
-        if (f.type === 'line') focusEl.rows = 2; else { focusEl.type = 'text'; focusEl.inputMode = 'numeric'; focusEl.className = 'n'; }
+        if (f.type === 'line') focusEl.rows = 1; else { focusEl.type = 'text'; focusEl.inputMode = 'numeric'; focusEl.className = 'n'; }
         focusEl.value = values[f.id] || '';
         focusEl.addEventListener('input', () => { values[f.id] = focusEl.value; update(); });
         ed.append(focusEl);
