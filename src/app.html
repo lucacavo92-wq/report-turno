@@ -46,6 +46,16 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--a
 .tri{flex:0 0 34px;height:34px;min-height:34px;padding:0;font:700 15px/1 var(--f-body);border-radius:4px;background:var(--panel);color:var(--muted);border:2px solid var(--muted)}
 .tri[data-st="off"]{background:var(--soft);border-color:var(--line);color:var(--bad)}
 .group li.off .name,.group li.off .cur{opacity:.45;text-decoration:line-through}
+input.cb{-webkit-appearance:none;appearance:none;flex:0 0 34px;width:34px;height:34px;min-height:34px;padding:0;margin:0;border:2px solid #44536a;border-radius:4px;background:linear-gradient(180deg,#2b3643,#1d2631);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 3px rgba(0,0,0,.55);cursor:pointer;display:grid;place-content:center}
+input.cb:checked{background:linear-gradient(180deg,#4c9bff,#2884ff 45%,#1b6fe0);border-color:#1558b8}
+input.cb:checked::after{content:"\2713";color:#fff;font:700 22px/1 var(--f-body)}
+label.name{cursor:pointer}
+.cassbar{display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:6px}
+.cassbar h4{margin:0;font:600 14.5px/1.2 var(--f-body)}
+.cassbar button{padding:4px 12px;font-size:13px;min-height:36px}
+.cassbox{border-top:1px solid var(--line);padding:5px 0;display:flex;flex-direction:column;gap:4px}
+.seg.tipo button{padding:6px 2px;font-size:13.5px}
+.seg.tipo{grid-template-columns:repeat(3,1fr);flex:1 1 200px}
 .ck{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
 .ck input{width:22px;height:22px;flex:0 0 22px;margin:1px 0 0;padding:0;accent-color:var(--accent)}
 .ck .t{display:flex;flex-direction:column;min-width:0}
@@ -394,16 +404,12 @@ function renderFields(){
     }
     const li = el('li');
     const top = el('div','frow');
-    const t = el('span','t'); t.append(el('span','name', f.name)); top.append(t); li.append(top);
+    const cb = el('input','cb'); cb.type = 'checkbox'; cb.id = 'ck-' + f.id; cb.checked = !excluded.has(f.id);
+    const t = el('span','t'); const nm = el('label','name', f.name); nm.htmlFor = cb.id; t.append(nm); top.append(cb, t); li.append(top);
     const ed = el('div','ed');
-    const paint = () => { const off = excluded.has(f.id); li.classList.toggle('off', off); ed.hidden = off;
-      if (tri) { tri.dataset.st = off ? 'off' : 'keep'; tri.setAttribute('aria-label', f.name + (off ? ': tolto dal messaggio' : ': nel messaggio')); } };
-    let tri = null;
-    if (f.type === 'line' || f.type === 'conf') {      // la piccola ✕ solo dove serve: toglie la voce dal messaggio
-      tri = el('button','tri', '✕'); tri.type = 'button'; tri.id = 'ck-' + f.id;
-      tri.onclick = () => { if (excluded.has(f.id)) excluded.delete(f.id); else excluded.add(f.id); paint(); update(); };
-      top.append(tri);
-    }
+    const paint = () => { const off = excluded.has(f.id); li.classList.toggle('off', off); ed.hidden = off; cb.checked = !off;
+      cb.setAttribute('aria-label', f.name + (off ? ': tolto dal messaggio' : ': nel messaggio')); };
+    cb.onchange = () => { if (cb.checked) excluded.delete(f.id); else excluded.add(f.id); paint(); update(); };
     let focusEl;
     if (f.type === 'conf') {
       const seg = el('div','seg');
@@ -569,8 +575,8 @@ const MG = (() => {
     { g:'Pacchi', id:'tot',   name:'Totale pacchi in magazzino',  type:'num', fmt:x => `Totale pacchi in magazzino: ${x}` },
     { g:'Pacchi', id:'sped',  name:'Pacchi spedibili',            type:'num', fmt:x => `Pacchi spedibili: ${x}` },
     { g:'Pacchi', id:'intest',name:'Fasce di intestature a terra',type:'num', fmt:x => `${x} fasce di intestature a terra` },
-    { g:'Cassoni e bat', id:'risaliti', name:'Cassone Risaliti', type:'cass' },
-    { g:'Cassoni e bat', id:'bat',      name:'Bat',              type:'num', fmt:x => `${x} bat` },
+    { g:'Cassoni', id:'cassoni', name:'Cassoni', type:'cassList' },
+    { g:'Bat', id:'bat', name:'Bat (numero)', type:'num', fmt:x => `${x} bat` },
     { g:'Scoria', id:'scM', name:'Mag. Lamiere',  type:'cassS' },
     { g:'Scoria', id:'scB', name:'Taglio bramme', type:'gp' },
     { g:'Controllo qualità pacchi', id:'q1', name:'Superficie',            type:'line', def:'Superficie conforme' },
@@ -580,17 +586,21 @@ const MG = (() => {
     { g:'Controllo qualità pacchi', id:'q5', name:'Segni della spianatrice', type:'line', def:'Visibili segni della spianatrice lato strada e lato ferrovia' },
   ];
   const BY = Object.fromEntries(F.map(f => [f.id, f]));
-  const emptyOf = f => f.type === 'num' ? '' : f.type === 'line' ? f.def : f.type === 'cass' ? {n:'',s:'',note:''} : f.type === 'cassS' ? {n:'',s:''} : {g:'',p:''};
+  const emptyOf = f => f.type === 'num' ? '' : f.type === 'line' ? f.def : f.type === 'cassList' ? [] : f.type === 'cassS' ? {n:'',s:''} : {g:'',p:''};
   const DEF = Object.fromEntries(F.map(f => [f.id, emptyOf(f)]));
   const MSECT = /^\s*\*?\s*(controllo\s+magazzino|scoria|controllo\s+qualit[aà]\s+pacchi)\s*\*?\s*:?\s*$/i;
   let gen = false, orig = {}, checked = new Set(), excluded = new Set(), values = {};
   const on = id => !excluded.has(id);
+  const TIPI = ['Risaliti','Montalbetti','Nostro'];
+  let cass = [];   // cassoni aggiunti: { tipo, n, s, note }; si parte con zero
+  const newCass = () => ({ tipo:'Risaliti', n:'', s:'', note:'' });
 
   function parse(text){
     const f = JSON.parse(JSON.stringify(DEF)); f.xm = []; f.xs = []; f.xq = []; const found = new Set();
     let ls = clean(text).split('\n');
     const h = ls.findIndex(l => /controllo\s+magazzino/i.test(l));
     if (h >= 0) ls = ls.slice(h + 1);            // saluti e titolo si ignorano
+    f.cass = [];
     let sec = 'main', pend = null;
     for (const raw of ls) {
       const l = raw.trim(); if (!l) continue;
@@ -602,11 +612,12 @@ const MG = (() => {
         if ((x = s.match(/totale\s+pacchi[^:\d]*:?\s*(\d+)/i))) f.tot = x[1];
         else if ((x = s.match(/pacchi\s+spedibili[^:\d]*:?\s*(\d+)/i))) f.sped = x[1];
         else if (/intestatur/i.test(s)) f.intest = (s.match(/\d+/) || [''])[0];
-        else if (/risaliti/i.test(s)) {
+        else if ((x = s.match(/(risaliti|montalbetti|nostro)/i))) {
           const n = (s.match(/^\s*(\d+)/) || [])[1] || '';
-          const rest = s.replace(/^\s*\d*\s*cass(?:oni|one)\s*/i, '').replace(/^risaliti\s*/i, '');
+          const tipo = x[1][0].toUpperCase() + x[1].slice(1).toLowerCase();
+          const rest = s.replace(/^\s*\d*\s*cass(?:oni|one)\s*/i, '').replace(/^(risaliti|montalbetti|nostro)\s*/i, '');
           const k = rest.match(/^(pien\w*|met\w*|vuot\w*)\s*(.*)$/i);
-          f.risaliti = k ? { n, s:normSt(k[1]), note:k[2].trim() } : { n, s:'', note:rest.trim() };
+          f.cass.push(k ? { tipo, n, s:normSt(k[1]), note:k[2].trim() } : { tipo, n, s:'', note:rest.trim() });
         }
         else if ((x = s.match(/^(\d+)\s+bat\b/i))) f.bat = x[1];
         else f.xm.push(s);
@@ -629,13 +640,14 @@ const MG = (() => {
     return f;
   }
 
+  const rowCass = c => { const n = (c.n || '').trim() || '1', note = (c.note || '').trim();
+    return `${n} ${cassWord(n)} ${c.tipo}${c.s ? ' ' + stPl(c.s, n) : ''}${note ? ' ' + note : ''}`; };
   function v(id){
     const o = orig[id], f = BY[id];
     if (!checked.has(id)) return o;
     const x = values[id]; if (x === undefined) return o;
     const pick = (k) => x[k] !== undefined ? x[k] : o[k];
     if (f.type === 'num' || f.type === 'line') return String(x).trim() || o;
-    if (f.type === 'cass') return { n:(x.n || '').trim() || o.n, s:pick('s'), note:x.note !== undefined ? x.note.trim() : o.note };
     if (f.type === 'cassS') return { n:(x.n || '').trim() || o.n, s:pick('s') };
     return { g:pick('g'), p:pick('p') };
   }
@@ -644,8 +656,6 @@ const MG = (() => {
   function rowOf(f, x){
     if (f.type === 'num') return x ? f.fmt(x) : '';
     if (f.type === 'line') return (x || '').trim();
-    if (f.type === 'cass') { if (!(x.n || x.s || x.note)) return ''; const n = x.n || '1';
-      return `${n} ${cassWord(n)} Risaliti${x.s ? ' ' + stPl(x.s, n) : ''}${x.note ? ' ' + x.note : ''}`; }
     if (f.type === 'cassS') { if (!(x.n || x.s)) return ''; const n = x.n || '1';
       return `${f.name}: ${n} ${cassWord(n)}${x.s ? ' ' + stPl(x.s, n) : ''}`; }
     const parts = []; if (x.g) parts.push('cassone grande ' + x.g); if (x.p) parts.push((x.g ? '' : 'cassone ') + 'piccolo ' + x.p);
@@ -656,7 +666,7 @@ const MG = (() => {
     const L = [SALUTO_MG, TITOLO_MG];
     const sez = (title, rows) => { rows = rows.filter(Boolean); if (rows.length) L.push('', ...(title ? [title] : []), ...rows.map(r => '• ' + r)); };
     sez('', ['tot','sped','intest'].map(row));
-    sez('', [...['risaliti','bat'].map(row), ...(orig.xm || [])]);
+    sez('', [...cass.map(rowCass), row('bat'), ...(orig.xm || [])]);
     sez('*Scoria*', [...['scM','scB'].map(row), ...(orig.xs || [])]);
     sez('*Controllo qualità pacchi*', [...['q1','q2','q3','q4','q5'].map(row), ...(orig.xq || [])]);
     return L.join('\n');
@@ -665,25 +675,30 @@ const MG = (() => {
   function show(f, x){
     if (f.type === 'num' || f.type === 'line') return x || '—';
     const r = rowOf(f, x);
-    return (f.type === 'cass' ? r : r.replace(/^[^:]+:\s*/, '')) || '—';
+    return r.replace(/^[^:]+:\s*/, '') || '—';
   }
   function render(){
     const box = $('mg-groups'); box.innerHTML = '';
     let grp = null, ul = null;
     F.forEach(f => {
       if (f.g !== grp) { grp = f.g; const g = el('div','group'); g.append(el('h3', null, grp)); ul = el('ul'); g.append(ul); box.append(g); }
+      if (f.type === 'cassList') {
+        const c = el('div'); c.id = 'mg-cass'; ul.parentNode.append(c);
+        const ad = el('button', null, 'Aggiungi cassone'); ad.type = 'button'; ad.id = 'mg-cass-add'; ad.style.cssText = 'width:100%;margin-top:6px';
+        ad.onclick = () => { cass.push(newCass()); renderCass(); update(); }; ul.parentNode.append(ad); renderCass(); return;
+      }
       const li = el('li');
       const top = el('div','frow');
-      const t = el('span','t'); t.append(el('span','name', f.name)); top.append(t); li.append(top);
+      let cb = null;
+      const t = el('span','t');
+      if (f.type === 'line') { cb = el('input','cb'); cb.type = 'checkbox'; cb.id = 'mg-ck-' + f.id; cb.checked = !excluded.has(f.id);
+        const lb = el('label','name', f.name); lb.htmlFor = cb.id; t.append(lb); top.append(cb); }
+      else t.append(el('span','name', f.name));
+      top.append(t); li.append(top);
       const ed = el('div','ed');
-      let tri = null;
       const paint = () => { const off = excluded.has(f.id); li.classList.toggle('off', off); ed.hidden = off;
-        if (tri) { tri.dataset.st = off ? 'off' : 'keep'; tri.setAttribute('aria-label', f.name + (off ? ': tolto dal messaggio' : ': nel messaggio')); } };
-      if (f.type === 'line') {
-        tri = el('button','tri', '✕'); tri.type = 'button'; tri.id = 'mg-ck-' + f.id;
-        tri.onclick = () => { if (excluded.has(f.id)) excluded.delete(f.id); else excluded.add(f.id); paint(); update(); };
-        top.append(tri);
-      }
+        if (cb) { cb.checked = !off; cb.setAttribute('aria-label', f.name + (off ? ': tolto dal messaggio' : ': nel messaggio')); } };
+      if (cb) cb.onchange = () => { if (cb.checked) excluded.delete(f.id); else excluded.add(f.id); paint(); update(); };
       const cur = () => values[f.id] || (values[f.id] = {});
       // tre tasti pieno / metà / vuoto; toccando quello acceso si spegne
       const segSt = (key, label) => {
@@ -705,21 +720,44 @@ const MG = (() => {
         focusEl.value = values[f.id] || '';
         focusEl.addEventListener('input', () => { values[f.id] = focusEl.value; update(); });
         ed.append(focusEl);
-      } else if (f.type === 'cass' || f.type === 'cassS') {
+      } else if (f.type === 'cassS') {
         const [r, n] = nBox(); focusEl = n; ed.append(r, segSt('s'));
-        if (f.type === 'cass') { const nt = el('input'); nt.type = 'text'; nt.id = 'mg-note-' + f.id; nt.placeholder = 'nota (es. appena cambiato)';
-          nt.value = (orig[f.id] || {}).note || ''; nt.addEventListener('input', () => { cur().note = nt.value; update(); }); ed.append(nt); }
       } else {
         const a = segSt('g', 'Cassone grande'), b = segSt('p', 'Cassone piccolo'); focusEl = a.querySelector('button'); ed.append(a, b);
       }
       paint(); li.append(ed); ul.append(li);
     });
   }
+  function renderCass(){
+    const box = $('mg-cass'); box.innerHTML = '';
+    cass.forEach((c, i) => {
+      const w = el('div','cassbox');
+      const bar = el('div','cassbar'); bar.append(el('h4', null, 'Cassone ' + (i + 1)));
+      const rm = el('button', null, 'Togli'); rm.type = 'button'; rm.id = 'mg-cass-rm-' + i;
+      rm.onclick = () => { cass.splice(i, 1); renderCass(); update(); }; bar.append(rm); w.append(bar);
+      const r1 = el('div','fix'); const sg = el('div','seg tipo');
+      const bt = TIPI.map(k => { const b = el('button', null, k); b.type = 'button'; b.id = `mg-cass-tipo-${i}-${k}`;
+        b.onclick = () => { c.tipo = k; pt(); update(); }; return b; });
+      const pt = () => bt.forEach((b, j) => b.setAttribute('aria-pressed', c.tipo === TIPI[j]));
+      pt(); sg.append(...bt); r1.append(sg); w.append(r1);
+      const r2 = el('div','fix'); const ss = el('div','seg st');
+      const bs = STATES.map(k => { const b = el('button', null, k); b.type = 'button'; b.id = `mg-cass-st-${i}-${k}`;
+        b.onclick = () => { c.s = c.s === k ? '' : k; ps(); update(); }; return b; });
+      const ps = () => bs.forEach((b, j) => b.setAttribute('aria-pressed', c.s === STATES[j]));
+      ps(); ss.append(...bs); r2.append(ss); w.append(r2);
+      const r3 = el('div','fix'); r3.append(el('span','pre','N° (se serve)'));
+      const n = el('input'); n.type = 'text'; n.inputMode = 'numeric'; n.className = 'n'; n.id = 'mg-cass-n-' + i; n.placeholder = 'n°'; n.value = c.n;
+      n.addEventListener('input', () => { c.n = n.value.replace(/\D/g, ''); update(); }); r3.append(n);
+      const nt = el('input'); nt.type = 'text'; nt.id = 'mg-cass-note-' + i; nt.placeholder = 'nota (es. appena cambiato)'; nt.value = c.note;
+      nt.addEventListener('input', () => { c.note = nt.value; update(); }); r3.append(nt); w.append(r3);
+      box.append(w);
+    });
+  }
   function update(){
     setOut('mg', build());
   }
   function load(text){
-    const p = parse(text || ''); orig = p; checked = new Set(F.map(f => f.id)); values = {};
+    const p = parse(text || ''); orig = p; cass = []; checked = new Set(F.map(f => f.id)); values = {};
     F.forEach(f => { if (f.type === 'line') values[f.id] = p[f.id]; });
     excluded = new Set(text && text.trim() ? F.filter(f => f.type === 'line' && !p.found.has(f.id)).map(f => f.id) : []);
     render(); update();
