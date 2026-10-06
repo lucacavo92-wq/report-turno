@@ -98,7 +98,22 @@ body:not([data-view="turno"]) #heroSub{display:none}
 .bar>*{flex:1 1 0;min-width:0}
 .bar>button{flex:0 0 32%;font-size:13.5px}
 .bar>.btn{flex:1 1 0;font-size:15.5px}
-a.share{align-self:center;margin-top:18px;min-height:34px;padding:4px 14px;font-size:13px;font-weight:400;color:var(--muted);background:linear-gradient(180deg,#2b3643 0%,#1d2631 100%);border-color:#44536a;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 3px rgba(0,0,0,.55)}
+a.share,button.mini{min-height:34px;padding:4px 14px;font-size:13px;font-weight:400;color:var(--muted);background:linear-gradient(180deg,#2b3643 0%,#1d2631 100%);border-color:#44536a;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 3px rgba(0,0,0,.55)}
+.minirow{display:flex;justify-content:center;gap:10px;margin-top:18px}
+.flt{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.flt button{min-height:32px;padding:4px 2px;font-size:12.5px;font-weight:400}
+.flt button[aria-pressed="true"]{background:linear-gradient(180deg,#4c9bff,#2884ff 45%,#1b6fe0);border-color:#1558b8;color:#fff;font-weight:600}
+.arcitem{width:100%;flex-direction:column;align-items:stretch;gap:2px;text-align:left;font-weight:400;padding:7px 10px}
+.arcitem b{font:600 13px/1.2 var(--f-body);color:var(--accent)}
+.arcitem span{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-line;color:var(--ink);font-size:13.5px;line-height:1.3}
+#arc-view-out{min-height:100px;max-height:300px}
+.badge{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:9px;background:#f0a030;color:#201200;font:700 11.5px/1.3 var(--f-body)}
+.badge.full{background:var(--bad);color:#1d0805}
+.warn{background:#3a2a10;border:1px solid #f0a030;border-radius:2px;padding:7px 10px;display:flex;flex-direction:column;gap:6px;font-size:13.5px;color:#ffd9a0}
+.warn.full{background:#3a1512;border-color:var(--bad);color:#ffc9c3}
+.warn .bar button{min-height:32px;font-size:12.5px;padding:4px 6px}
+button.danger{color:#ffc9c3;background:linear-gradient(180deg,#8a2e26,#5e1c17);border-color:#a8433a}
+button.danger[data-stage="1"],button.danger[data-stage="2"]{background:linear-gradient(180deg,#e0574b,#b83a2f);color:#fff;border-color:#8c241b}
 button.azz{align-self:flex-end;min-height:30px;padding:3px 10px;font-size:12.5px;font-weight:400;color:var(--muted);background:none;box-shadow:none;border:1px solid var(--line)}
 .status{font-size:13px;color:var(--ok);margin:0}
 @media (prefers-reduced-motion:no-preference){button{transition:none}}
@@ -129,7 +144,8 @@ button:disabled,.tile:disabled{background:#161b21;color:#6d7783;border:1px dashe
       <button class="tile" type="button" disabled>Logistica<small>work in progress</small></button>
       <button class="tile" type="button" disabled>Manutenzione<small>work in progress</small></button>
     </div>
-    <a class="btn share" id="share" href="#" target="_blank" rel="noopener">&#10150; Condividi</a>
+    <div class="minirow"><button type="button" class="mini" id="arc-open"><span>Archivio</span><span class="badge" id="arc-badge" hidden></span></button>
+      <a class="btn share" id="share" href="#" target="_blank" rel="noopener">&#10150; Condividi</a></div>
   </div>
 
   <div class="view" id="v-turno" hidden>
@@ -190,6 +206,29 @@ button:disabled,.tile:disabled{background:#161b21;color:#6d7783;border:1px dashe
         <a class="btn" id="la-wa" href="#" target="_blank" rel="noopener">Apri in WhatsApp</a>
       </div>
       <p class="status" id="la-status" role="status" hidden></p>
+    </section>
+  </div>
+
+  <div class="view" id="v-arc" hidden>
+    <section class="card" id="arc-list">
+      <div class="warn" id="arc-warn" hidden><span id="arc-warn-t"></span>
+        <div class="bar"><button type="button" id="arc-w-zip">Salva file (zip)</button><button type="button" id="arc-w-share">Condividi archivio</button></div></div>
+      <div class="flt" id="arc-flt"></div>
+      <div id="arc-items" class="view" style="gap:6px"></div>
+      <p class="status" id="arc-empty" style="color:var(--muted)" hidden>Nessun messaggio salvato</p>
+      <button type="button" class="primary" id="arc-share" disabled>Condividi archivio</button>
+      <button type="button" id="arc-zip" disabled>Salva file (zip)</button>
+      <button type="button" class="danger" id="arc-clear" disabled>Cancella archivio</button>
+    </section>
+    <section class="card" id="arc-det" hidden>
+      <h2 id="arc-det-h"></h2>
+      <textarea id="arc-view-out" readonly aria-label="Messaggio salvato"></textarea>
+      <div class="bar">
+        <button class="primary" id="arc-copy" type="button">Copia</button>
+        <a class="btn" id="arc-wa" href="#" target="_blank" rel="noopener">Apri in WhatsApp</a>
+      </div>
+      <p class="status" id="arc-status" role="status" hidden></p>
+      <button type="button" class="azz" id="arc-del">Elimina</button>
     </section>
   </div>
 </div>
@@ -280,11 +319,11 @@ function memIds(arr, types){ return Array.isArray(arr) ? arr.filter(id => typeof
 window.addEventListener('pagehide', () => MEMS.forEach(m => m.flush()));
 document.addEventListener('visibilitychange', () => { if (document.hidden) MEMS.forEach(m => m.flush()); });
 // "Azzera": primo tocco chiede conferma, secondo tocco azzera
-function wireAzzera(id, fn){
+function wireAzzera(id, fn, label = 'Azzera'){
   const b = $(id); let t = null;
   b.onclick = () => {
-    if (t) { clearTimeout(t); t = null; b.textContent = 'Azzera'; fn(); return; }
-    b.textContent = 'Confermi?'; t = setTimeout(() => { t = null; b.textContent = 'Azzera'; }, 3000);
+    if (t) { clearTimeout(t); t = null; b.textContent = label; fn(); return; }
+    b.textContent = 'Confermi?'; t = setTimeout(() => { t = null; b.textContent = label; }, 3000);
   };
 }
 
@@ -572,8 +611,10 @@ function load(text){
 
 // (la casella "incolla il report precedente" e' stata tolta il 06/10/2026; parse() e load(testo) restano nel codice ma non si raggiungono)
 $('date').addEventListener('change', () => { manual = true; update(); });
+$('wa').addEventListener('click', () => arcSave('turno', $('out').value));
 $('copy').onclick = () => {
   const text = $('out').value; if (!text) return;
+  arcSave('turno', text);
   const say = m => { $('status').textContent = m; $('status').hidden = false; };
   const fallback = () => { const o = $('out'); o.focus(); o.select(); try { document.execCommand('copy') ? say('Copiato') : say('Tieni premuto e scegli Copia'); } catch(e) { say('Tieni premuto e scegli Copia'); } };
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => say('Copiato'), fallback); else fallback();
@@ -601,9 +642,159 @@ wireAzzera('azz-turno', () => { values = baseValues(); excluded = new Set(); ren
 const TESTO_CONDIVIDI = '*Reportistica FIL* - l\'app per fare i report di turno\n\nCome installarla sul telefono (1 minuto):\n1. Apri questo link con *Chrome*:\nhttps://lucacavo92-wq.github.io/report-turno/\n2. Tocca i tre puntini ⋮ in alto a destra.\n3. Tocca *Installa app* (oppure *Aggiungi a schermata Home*) e conferma.\n4. Trovi l\'icona FIL sulla schermata Home. Aprila da lì.\n\niPhone: apri il link con *Safari*, tocca il tasto Condividi e poi *Aggiungi a schermata Home*.\n\nLogistica e Manutenzione arriveranno più avanti.';
 $('share').href = 'https://wa.me/?text=' + encodeURIComponent(TESTO_CONDIVIDI);
 
+/* ---------- ARCHIVIO dei messaggi inviati (solo nel telefono, localStorage; mai bloccante) ---------- */
+const ARC_KEY = 'reportistica.v1.archivio';
+const ARC_MAX = 200;      // massimo messaggi tenuti (i piu' vecchi spariscono)
+const ARC_AVVISO = 180;   // da qui compare l'avviso "archivio quasi pieno"
+const ARC_TIPI = { turno:'Turno', magazzino:'Magazzino', lamiere:'Lamiere' };
+function romeNow(){
+  const d = new Date();
+  try {
+    const q = {}; new Intl.DateTimeFormat('en-GB', { timeZone:'Europe/Rome', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit', hourCycle:'h23' })
+      .formatToParts(d).forEach(x => { q[x.type] = x.value; });
+    const off = Math.round((Date.UTC(+q.year, q.month - 1, +q.day, +q.hour, +q.minute, +q.second) - Math.floor(d.getTime() / 1000) * 1000) / 60000);
+    const sg = off < 0 ? '-' : '+', a = Math.abs(off), z = n => String(n).padStart(2, '0');
+    return { iso:`${q.year}-${q.month}-${q.day}T${q.hour}:${q.minute}:${q.second}${sg}${z(Math.floor(a / 60))}:${z(a % 60)}`, txt:`${q.day}/${q.month}/${q.year} ${q.hour}:${q.minute}` };
+  } catch(e) {
+    const z = n => String(n).padStart(2, '0');
+    return { iso:`${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}:${z(d.getSeconds())}`, txt:`${z(d.getDate())}/${z(d.getMonth() + 1)}/${d.getFullYear()} ${z(d.getHours())}:${z(d.getMinutes())}` };
+  }
+}
+function arcRead(){
+  try {
+    const r = localStorage.getItem(ARC_KEY); if (!r) return [];
+    const o = JSON.parse(r); if (!o || o.v !== 1 || !Array.isArray(o.d)) return [];
+    return o.d.filter(e => e && typeof e.t === 'string' && /^\d{4}-\d\d-\d\dT\d\d:\d\d/.test(e.t) && typeof e.l === 'string' && typeof e.x === 'string' && ARC_TIPI[e.r]).slice(-ARC_MAX);
+  } catch(e) { return []; }
+}
+function arcWrite(list){ try { localStorage.setItem(ARC_KEY, JSON.stringify({ v:1, d:list.slice(-ARC_MAX) })); return true; } catch(e) { return false; } }
+function arcSave(tipo, text){
+  try {
+    if (!ARC_TIPI[tipo] || typeof text !== 'string' || !text.trim()) return;
+    const list = arcRead(), n = romeNow();
+    let i = -1; for (let k = list.length - 1; k >= 0; k--) if (list[k].r === tipo) { i = k; break; }
+    if (i >= 0 && list[i].x === text) { const e = list.splice(i, 1)[0]; e.t = n.iso; e.l = n.txt; list.push(e); }
+    else list.push({ t:n.iso, l:n.txt, r:tipo, x:text.slice(0, 8000) });
+    arcWrite(list); arcBadge();
+  } catch(e) {}
+}
+
+/* ---------- zip senza librerie (formato "stored", CRC32, nomi UTF-8) ---------- */
+const CRC_T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u8){ let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC_T[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function makeZip(files){      // files: [{ name, data:Uint8Array, t:'AAAA-MM-GGTHH:MM:SS' }]
+  const enc = new TextEncoder(), parts = [], cen = [];
+  let off = 0;
+  const u16 = (v, n) => { v.push(n & 255, (n >>> 8) & 255); }, u32 = (v, n) => { v.push(n & 255, (n >>> 8) & 255, (n >>> 16) & 255, (n >>> 24) & 255); };
+  files.forEach(f => {
+    const nm = enc.encode(f.name), crc = crc32(f.data), m = /^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)/.exec(f.t || '');
+    const [Y, M, D, h, mi, se] = m ? m.slice(1).map(Number) : [1980, 1, 1, 0, 0, 0];
+    const dt = (Math.max(Y, 1980) - 1980) << 9 | M << 5 | D, tm = h << 11 | mi << 5 | (se >> 1);
+    const lh = [];
+    u32(lh, 0x04034b50); u16(lh, 20); u16(lh, 0x0800); u16(lh, 0); u16(lh, tm); u16(lh, dt); u32(lh, crc); u32(lh, f.data.length); u32(lh, f.data.length); u16(lh, nm.length); u16(lh, 0);
+    parts.push(new Uint8Array(lh), nm, f.data);
+    const ch = [];
+    u32(ch, 0x02014b50); u16(ch, 20); u16(ch, 20); u16(ch, 0x0800); u16(ch, 0); u16(ch, tm); u16(ch, dt); u32(ch, crc); u32(ch, f.data.length); u32(ch, f.data.length);
+    u16(ch, nm.length); u16(ch, 0); u16(ch, 0); u16(ch, 0); u16(ch, 0); u32(ch, 0); u32(ch, off);
+    cen.push(new Uint8Array(ch), nm);
+    off += lh.length + nm.length + f.data.length;
+  });
+  let cs = 0; cen.forEach(x => { cs += x.length; });
+  const end = []; u32(end, 0x06054b50); u16(end, 0); u16(end, 0); u16(end, files.length); u16(end, files.length); u32(end, cs); u32(end, off); u16(end, 0);
+  return new Blob([...parts, ...cen, new Uint8Array(end)], { type:'application/zip' });
+}
+function arcZipFiles(list){
+  const enc = new TextEncoder(), bom = [0xEF, 0xBB, 0xBF], used = new Set(), files = [], rows = ['data,ora,tipo,file'];
+  list.forEach(e => {
+    const base = `${e.t.slice(0, 10)}_${e.t.slice(11, 13)}-${e.t.slice(14, 16)}_${e.r}`; let nm = base + '.txt', k = 2;
+    while (used.has(nm)) nm = `${base}_${k++}.txt`;
+    used.add(nm);
+    files.push({ name:nm, t:e.t, data:new Uint8Array([...bom, ...enc.encode(e.x)]) });
+    rows.push([e.t.slice(0, 10), e.t.slice(11, 16), e.r, nm].join(','));
+  });
+  files.push({ name:'indice.csv', t:list.length ? list[list.length - 1].t : '', data:new Uint8Array([...bom, ...enc.encode(rows.join('\r\n') + '\r\n')]) });
+  return files;
+}
+function arcExport(share){
+  const list = arcRead(); if (!list.length) return;
+  const name = `Reportistica_archivio_${romeNow().iso.slice(0, 10)}.zip`;
+  const blob = makeZip(arcZipFiles(list));
+  const download = () => {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.style.display = 'none';
+    document.body.appendChild(a); a.click(); setTimeout(() => { a.remove(); URL.revokeObjectURL(a.href); }, 4000);
+  };
+  try {
+    const f = new File([blob], name, { type:'application/zip' });
+    if (share && navigator.share && navigator.canShare && navigator.canShare({ files:[f] })) {
+      navigator.share({ files:[f] }).catch(err => { if (!err || err.name !== 'AbortError') download(); });
+      return;
+    }
+  } catch(e) {}
+  download();
+}
+
+/* ---------- pagina Archivio ---------- */
+let arcFilter = 'tutti', arcCur = null;
+function arcBadge(){
+  try {
+    const n = arcRead().length, b = $('arc-badge');
+    b.hidden = n < ARC_AVVISO; b.textContent = `${n}/${ARC_MAX}`; b.classList.toggle('full', n >= ARC_MAX);
+  } catch(e) {}
+}
+function arcRender(){
+  const all = arcRead(), list = all.filter(e => arcFilter === 'tutti' || e.r === arcFilter).reverse();
+  const fl = $('arc-flt'); fl.innerHTML = '';
+  [['tutti', 'Tutti'], ['turno', 'Turno'], ['magazzino', 'Magazzino'], ['lamiere', 'Lamiere']].forEach(([k, n]) => {
+    const b = el('button', null, n); b.type = 'button'; b.dataset.f = k; b.setAttribute('aria-pressed', String(arcFilter === k));
+    b.onclick = () => { arcFilter = k; arcRender(); }; fl.append(b);
+  });
+  const box = $('arc-items'); box.innerHTML = '';
+  list.forEach(e => {
+    const b = el('button', 'arcitem'); b.type = 'button';
+    b.append(el('b', null, `${e.l} · ${ARC_TIPI[e.r]}`), el('span', null, e.x.replace(/\*/g, '').split('\n').filter(x => x.trim()).slice(0, 3).join('\n')));
+    b.onclick = () => arcOpen(e); box.append(b);
+  });
+  $('arc-empty').hidden = list.length > 0;
+  $('arc-zip').disabled = $('arc-share').disabled = $('arc-clear').disabled = all.length === 0;
+  if (all.length === 0) window.arcClearReset();
+  $('arc-flt').hidden = all.length === 0;
+  const w = $('arc-warn'); w.hidden = all.length < ARC_AVVISO; w.classList.toggle('full', all.length >= ARC_MAX);
+  $('arc-warn-t').textContent = all.length >= ARC_MAX ? "Archivio pieno: i messaggi più vecchi vengono cancellati" : `Archivio quasi pieno: ${all.length}/${ARC_MAX}. Salva il file zip`;
+  arcBadge();
+}
+function arcOpen(e){
+  arcCur = e; $('arc-list').hidden = true; $('arc-det').hidden = false;
+  $('arc-det-h').textContent = `${e.l} · ${ARC_TIPI[e.r]}`;
+  $('arc-view-out').value = e.x; fit($('arc-view-out'));
+  $('arc-wa').href = 'https://wa.me/?text=' + encodeURIComponent(e.x);
+  $('arc-status').hidden = true; window.scrollTo(0, 0);
+}
+function arcClose(){ arcCur = null; $('arc-det').hidden = true; $('arc-list').hidden = false; arcRender(); window.scrollTo(0, 0); }
+$('arc-open').onclick = () => { location.hash = 'arc'; };
+$('arc-zip').onclick = () => arcExport(false);
+$('arc-share').onclick = () => arcExport(true);
+$('arc-w-zip').onclick = () => arcExport(false);
+$('arc-w-share').onclick = () => arcExport(true);
+(() => {   // Cancella archivio: 3 tocchi (richiesta, conferma finale, cancella); se si aspetta torna com'era
+  const b = $('arc-clear'), TXT = ['Cancella archivio', 'Sei sicuro? Cancella tutto', 'Confermi? Non si può annullare'];
+  let st = 0, t = null;
+  const set = n => { st = n; b.textContent = TXT[n]; b.dataset.stage = String(n); clearTimeout(t); if (n) t = setTimeout(() => set(0), 4000); };
+  b.onclick = () => {
+    if (st < 2) { set(st + 1); return; }
+    set(0); try { localStorage.removeItem(ARC_KEY); } catch(e) {}
+    arcRender(); arcBadge();
+  };
+  window.arcClearReset = () => set(0);
+})();
+wireAzzera('arc-del', () => {
+  const c = arcCur; if (c) { const l = arcRead(), i = l.findIndex(x => x.t === c.t && x.r === c.r && x.x === c.x); if (i >= 0) { l.splice(i, 1); arcWrite(l); } }
+  arcClose();
+}, 'Elimina');
+arcBadge();
+
 /* ---------- navigazione tra le pagine ---------- */
-const VIEWS = ['home','turno','mag','lam'];
-const TITLES = { home:'Reportistica', turno:'Report turno', mag:'Controllo magazzino', lam:'Controllo lamiere' };
+const VIEWS = ['home','turno','mag','lam','arc'];
+const TITLES = { home:'Reportistica', turno:'Report turno', mag:'Controllo magazzino', lam:'Controllo lamiere', arc:'Archivio' };
 function showView(n){
   if (!VIEWS.includes(n)) n = 'home';
   VIEWS.forEach(x => $('v-' + x).hidden = x !== n);
@@ -613,16 +804,18 @@ function showView(n){
   $('hTitle').classList.toggle('long', n === 'mag' || n === 'lam');
   $('back').hidden = n === 'home';
   window.scrollTo(0, 0);
-  if (n === 'turno') update(); else if (n === 'mag') MG.update(); else if (n === 'lam') LAM.update();
+  if (n === 'turno') update(); else if (n === 'mag') MG.update(); else if (n === 'lam') LAM.update(); else if (n === 'arc') { arcCur = null; $('arc-det').hidden = true; $('arc-list').hidden = false; arcRender(); }
 }
 document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => { location.hash = b.dataset.go; });
-$('back').onclick = () => { if (location.hash) history.back(); else showView('home'); };
+$('back').onclick = () => { if (document.body.dataset.view === 'arc' && !$('arc-det').hidden) { arcClose(); return; } if (location.hash) history.back(); else showView('home'); };
 window.addEventListener('hashchange', () => showView(location.hash.slice(1)));
 
 /* ---------- pezzi in comune delle nuove pagine ---------- */
-function wireCopy(outId, copyId, statusId){
+function wireCopy(outId, copyId, statusId, tipo){
+  if (tipo) $(outId.replace('-out', '-wa')).addEventListener('click', () => arcSave(tipo, $(outId).value));
   $(copyId).onclick = () => {
     const text = $(outId).value; if (!text) return;
+    if (tipo) arcSave(tipo, text);
     const say = m => { $(statusId).textContent = m; $(statusId).hidden = false; };
     const fallback = () => { const o = $(outId); o.focus(); o.select(); try { document.execCommand('copy') ? say('Copiato') : say('Tieni premuto e scegli Copia'); } catch(e) { say('Tieni premuto e scegli Copia'); } };
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => say('Copiato'), fallback); else fallback();
@@ -633,6 +826,7 @@ function setOut(prefix, text){
   $(prefix + '-wa').href = 'https://wa.me/?text=' + encodeURIComponent(text);
   $(prefix + '-status').hidden = true;
 }
+wireCopy('arc-view-out', 'arc-copy', 'arc-status');
 const normSt = k => /^pien/i.test(k) ? 'pieno' : /^met/i.test(k) ? 'metà' : 'vuoto';
 const ST_RE = /pien\w*|met\w*|vuot\w*/i;
 
@@ -796,7 +990,7 @@ const MG = (() => {
     excluded = new Set(text && text.trim() ? F.filter(f => f.type === 'line' && !p.found.has(f.id)).map(f => f.id) : []);
     render(); update();
   }
-  wireCopy('mg-out', 'mg-copy', 'mg-status');
+  wireCopy('mg-out', 'mg-copy', 'mg-status', 'magazzino');
   const MTYPES = Object.fromEntries(F.map(f => [f.id, f.type]));
   const mem = makeMem('reportistica.v1.magazzino', () => ({ values, excluded:[...excluded] }), d => {
     values = { ...values, ...memValues(d.values, MTYPES) }; excluded = new Set(memIds(d.excluded, MTYPES)); render(); update();
@@ -870,7 +1064,7 @@ const LAM = (() => {
     render(); update();
   }
   $('la-add').onclick = () => { lots.push(newLot()); render(); update(); $(`la-num-${lots.length - 1}`).focus(); };
-  wireCopy('la-out', 'la-copy', 'la-status');
+  wireCopy('la-out', 'la-copy', 'la-status', 'lamiere');
   const strs = (a, n) => Array.isArray(a) ? Array.from({ length:n }, (_, i) => typeof a[i] === 'string' ? a[i].slice(0, 50) : '') : null;
   const mem = makeMem('reportistica.v1.lamiere', () => lots, d => {
     if (!Array.isArray(d) || !d.length) return;

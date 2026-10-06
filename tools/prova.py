@@ -333,6 +333,196 @@ with sync_playwright() as pw:
     check('Produzione 9 ton' in q.eval_on_selector('#out', 'e => e.value') and not errs, "memoria: localStorage bloccato -> l'app funziona lo stesso, nessun errore")
     c3.close()
 
+    # ======================= ARCHIVIO messaggi =======================
+    import zipfile, io, json, re, tempfile, os
+    from datetime import timezone
+    UTC = lambda *a: datetime(*a, tzinfo=timezone.utc)
+    AK = "() => JSON.parse(localStorage.getItem('reportistica.v1.archivio') || '{\"d\":[]}').d"
+    NOWA = "() => ['wa','mg-wa','la-wa','arc-wa'].forEach(i => document.getElementById(i).addEventListener('click', e => e.preventDefault()))"
+    ISO = re.compile(r'^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d[+-]\d\d:\d\d$')
+    OKCOPIA = ('Copiato', 'Tieni premuto e scegli Copia')
+    errs.clear()
+    ca, q = nuovo(UTC(2026, 10, 6, 20, 40)); q.evaluate(NOWA)
+    ag = lambda: q.evaluate(AK)
+    check(ag() == [], 'archivio: a memoria vuota non salva niente')
+    # Copia salva una voce (Report turno)
+    q.click('[data-go=turno]'); q.fill('#in-prod', '401'); t1 = q.eval_on_selector('#out', 'e => e.value')
+    q.click('#copy'); q.wait_for_selector('#status', state='visible', timeout=3000)
+    a = ag()
+    check(len(a) == 1 and a[0]['r'] == 'turno' and a[0]['x'] == t1 and ISO.match(a[0]['t']) and a[0]['t'].startswith('2026-10-06T22:40:') and a[0]['t'].endswith('+02:00') and a[0]['l'] == '06/10/2026 22:40', 'archivio: Copia salva una voce (tipo turno, testo completo, ora Europe/Rome ISO + leggibile)')
+    check(q.inner_text('#status') in OKCOPIA, 'archivio: Copia funziona uguale')
+    # niente doppione: Copia poi WhatsApp con testo identico, aggiorna solo l'ora
+    q.clock.set_fixed_time(UTC(2026, 10, 6, 20, 55)); q.click('#wa')
+    a = ag()
+    check(len(a) == 1 and a[0]['l'] == '06/10/2026 22:55' and a[0]['x'] == t1, "archivio: WhatsApp col testo identico non crea doppione, aggiorna l'ora")
+    check(q.get_attribute('#wa', 'href').startswith('https://wa.me/?text='), 'archivio: WhatsApp ha ancora il suo link')
+    # testo diverso -> nuova voce; poi tornando al primo testo -> altra voce (il confronto e' con la piu' recente)
+    q.fill('#in-prod', '402'); t2 = q.eval_on_selector('#out', 'e => e.value'); q.click('#wa')
+    check([e['x'] for e in ag()] == [t1, t2], 'archivio: testo diverso -> nuova voce')
+    q.fill('#in-prod', '401'); q.click('#copy')
+    check([e['x'] for e in ag()] == [t1, t2, t1], 'archivio: confronto solo con la voce piu recente dello stesso report')
+    # magazzino
+    q.click('#back'); q.click('[data-go=mag]'); q.fill('#mg-in-tot', '21')
+    tm = q.eval_on_selector('#mg-out', 'e => e.value'); q.click('#mg-copy'); q.wait_for_selector('#mg-status', state='visible', timeout=3000)
+    # lamiere: vuoto non salva, compilato si
+    q.click('#back'); q.click('[data-go=lam]'); n0 = len(ag()); q.click('#la-copy'); q.click('#la-wa')
+    check(len(ag()) == n0, 'archivio: report lamiere vuoto -> niente da salvare')
+    q.fill('#la-num-0', '19223'); q.fill('#la-testa-0-0', '25.7'); tl = q.eval_on_selector('#la-out', 'e => e.value'); q.click('#la-wa')
+    a = ag()
+    check([e['r'] for e in a] == ['turno', 'turno', 'turno', 'magazzino', 'lamiere'] and a[3]['x'] == tm and a[4]['x'] == tl, 'archivio: tipo giusto per Report turno, Controllo magazzino, Controllo lamiere (Copia e WhatsApp)')
+    # pagina Archivio
+    q.click('#back'); q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
+    check(q.text_content('#hTitle') == 'Archivio' and q.is_visible('#back') and q.is_visible('#arc-zip') and q.is_enabled('#arc-zip'), 'archivio: pagina con titolo, freccia indietro e tasto Salva file (zip)')
+    items = q.eval_on_selector_all('.arcitem', 'els => els.map(e => e.innerText)')
+    check(len(items) == 5 and 'Lamiere' in items[0] and 'Magazzino' in items[1] and 'Turno' in items[2] and items[0].count('\n') >= 1, 'archivio: elenco dal piu recente con data/ora, tipo e prime righe')
+    check('06/10/2026' in items[0] and '*' not in items[0], 'archivio: elenco con data e senza asterischi')
+    def fl(k):
+        q.click(f'#arc-flt [data-f={k}]'); return q.locator('.arcitem').count()
+    check([fl('turno'), fl('magazzino'), fl('lamiere'), fl('tutti')] == [3, 1, 1, 5], 'archivio: filtri Turno / Magazzino / Lamiere / Tutti')
+    check(q.get_attribute('#arc-flt [data-f=tutti]', 'aria-pressed') == 'true', 'archivio: filtro attivo evidenziato')
+    # apri una voce
+    q.locator('.arcitem').nth(1).click()
+    check(q.is_visible('#arc-det') and not q.is_visible('#arc-list') and q.eval_on_selector('#arc-view-out', 'e => e.value') == tm, 'archivio: toccando una voce si apre il testo intero')
+    check(q.is_visible('#arc-copy') and q.is_visible('#arc-wa') and q.inner_text('#arc-del') == 'Elimina' and q.get_attribute('#arc-wa', 'href').startswith('https://wa.me/?text='), 'archivio: tasti Copia, Apri in WhatsApp, Elimina')
+    n1 = len(ag()); q.click('#arc-copy'); q.wait_for_selector('#arc-status', state='visible', timeout=3000); q.click('#arc-wa')
+    check(len(ag()) == n1, "archivio: Copia/WhatsApp dall'archivio non aggiungono voci")
+    q.click('#back')
+    check(q.is_visible('#arc-list') and not q.is_visible('#arc-det') and q.is_visible('#v-arc'), 'archivio: freccia dal dettaglio torna all elenco')
+    q.locator('.arcitem').nth(1).click()
+    q.click('#arc-del')
+    check(q.inner_text('#arc-del') == 'Confermi?' and len(ag()) == 5, 'archivio: Elimina primo tocco chiede conferma e non cancella')
+    q.click('#arc-del'); q.wait_for_timeout(100)
+    a = ag()
+    check(len(a) == 4 and all(e['r'] != 'magazzino' for e in a) and q.is_visible('#arc-list') and q.locator('.arcitem').count() == 4, 'archivio: Elimina al secondo tocco toglie la voce e torna all elenco')
+    # Azzera dei report non tocca l'archivio
+    q.click('#back'); q.click('[data-go=turno]'); q.click('#azz-turno'); q.click('#azz-turno')
+    q.click('#back'); q.click('[data-go=mag]'); q.click('#azz-mag'); q.click('#azz-mag')
+    q.click('#back'); q.click('[data-go=lam]'); q.click('#azz-lam'); q.click('#azz-lam'); q.wait_for_timeout(100)
+    check(len(ag()) == 4, "archivio: Azzera dei tre report non cancella l'archivio")
+    check('reportistica.v1.archivio' in q.evaluate(LS), 'archivio: chiave reportistica.v1.archivio')
+    # sopravvive al ricaricamento
+    q.wait_for_timeout(500); q.reload(); q.wait_for_selector('#v-home', state='visible'); q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
+    check(q.locator('.arcitem').count() == 4, 'archivio: dopo il ricaricamento le voci ci sono ancora ' + str(q.locator('.arcitem').count()) + str(ag()) + q.url)
+    # limite 200
+    q.evaluate("() => localStorage.setItem('reportistica.v1.archivio', JSON.stringify({v:1, d:Array.from({length:200}, (_, i) => ({t:'2026-10-0'+(1+i%5)+'T10:'+String(i%60).padStart(2,'0')+':00+02:00', l:'x', r:'turno', x:'msg'+i}))}))")
+    q.click('#back'); q.click('[data-go=mag]'); q.fill('#mg-in-tot', '99'); q.click('#mg-copy')
+    a = ag()
+    check(len(a) == 200 and a[0]['x'] == 'msg1' and a[-1]['r'] == 'magazzino', 'archivio: limite 200 (il piu vecchio sparisce da solo)')
+    ca.close()
+    # ---- archivio vuoto ----
+    cb, q = nuovo(); q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
+    check(q.is_visible('#arc-empty') and q.inner_text('#arc-empty') == 'Nessun messaggio salvato' and q.is_disabled('#arc-zip') and q.locator('.arcitem').count() == 0, 'archivio vuoto: "Nessun messaggio salvato" e tasto zip disabilitato')
+    cb.close()
+    # ---- zip: download ----
+    NOSHARE = "Object.defineProperty(navigator, 'share', { value: undefined, configurable: true });"
+    SEED = [('2026-10-06T14:05:30+02:00', 'turno', '*Report turno 6-14 del 06/10*\nProduzione 398 ton\nCassone: 2 (pieno, metà)'),
+            ('2026-10-06T14:05:50+02:00', 'turno', '*Report turno 6-14 del 06/10*\nProduzione 400 ton'),
+            ('2026-10-06T17:30:00+02:00', 'magazzino', 'Buongiorno,\n*Controllo magazzino*\n• Totale pacchi in magazzino: 21'),
+            ('2026-12-01T09:00:00+01:00', 'lamiere', '*Controllo lamiere*\nLotto 19223\nSpessori testa: 25.7 25.9 25.3')]
+    SEEDJS = "() => localStorage.setItem('reportistica.v1.archivio', JSON.stringify({v:1, d:%s.map(([t, r, x]) => ({t, l:'l', r, x}))}))" % json.dumps(SEED)
+    errs.clear()
+    cz, q = nuovo(UTC(2026, 10, 6, 22, 30), NOSHARE)      # 22:30 UTC = 00:30 del 07/10 a Roma
+    q.evaluate(SEEDJS); q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
+    check(q.is_enabled('#arc-zip'), 'zip: tasto abilitato con archivio pieno')
+    with q.expect_download() as dl: q.click('#arc-zip')
+    d = dl.value; zp = os.path.join(tempfile.gettempdir(), 'prova_archivio.zip'); d.save_as(zp)
+    check(d.suggested_filename == 'Reportistica_archivio_2026-10-07.zip', 'zip: nome Reportistica_archivio_AAAA-MM-GG.zip (data di Roma)')
+    zf = zipfile.ZipFile(zp)
+    check(zf.testzip() is None, 'zip: testzip OK (CRC di tutti i file corretti)')
+    names = zf.namelist()
+    check(names == ['2026-10-06_14-05_turno.txt', '2026-10-06_14-05_turno_2.txt', '2026-10-06_17-30_magazzino.txt', '2026-12-01_09-00_lamiere.txt', 'indice.csv'], 'zip: un .txt per messaggio AAAA-MM-GG_HH-MM_tipo.txt (nome doppio -> _2) + indice.csv: ' + str(names))
+    ok_c = all(zf.read(n).startswith(b'\xef\xbb\xbf') and zf.read(n)[3:].decode('utf-8') == SEED[i][2] for i, n in enumerate(names[:4]))
+    check(ok_c, 'zip: contenuti uguali ai messaggi, UTF-8 con BOM')
+    check(all(i.compress_type == zipfile.ZIP_STORED and i.flag_bits & 0x800 for i in zf.infolist()), 'zip: formato stored, nomi UTF-8 (flag 0x0800)')
+    check(zf.getinfo(names[0]).date_time == (2026, 10, 6, 14, 5, 30) and zf.getinfo(names[3]).date_time == (2026, 12, 1, 9, 0, 0), 'zip: data/ora DOS dei file = ora del messaggio')
+    csv = zf.read('indice.csv'); cs = csv.decode('utf-8-sig')
+    check(csv.startswith(b'\xef\xbb\xbf') and cs.split('\r\n') == ['data,ora,tipo,file', '2026-10-06,14:05,turno,2026-10-06_14-05_turno.txt', '2026-10-06,14:05,turno,2026-10-06_14-05_turno_2.txt', '2026-10-06,17:30,magazzino,2026-10-06_17-30_magazzino.txt', '2026-12-01,09:00,lamiere,2026-12-01_09-00_lamiere.txt', ''], 'zip: indice.csv (data, ora, tipo, nome file)')
+    # test su 200 messaggi lunghi e accentati
+    q.evaluate("() => localStorage.setItem('reportistica.v1.archivio', JSON.stringify({v:1, d:Array.from({length:200}, (_, i) => ({t:'2026-10-06T10:'+String(i%60).padStart(2,'0')+':'+String(Math.floor(i/60)).padStart(2,'0')+'+02:00', l:'x', r:['turno','magazzino','lamiere'][i%3], x:'Voce '+i+' àèìòù €\\n'+'riga lunga '.repeat(50)}))}))")
+    q.click('#back'); q.click('#arc-open')
+    with q.expect_download() as dl: q.click('#arc-zip')
+    dl.value.save_as(zp); zf = zipfile.ZipFile(zp)
+    check(zf.testzip() is None and len(zf.namelist()) == 201 and zf.read(zf.namelist()[7])[3:].decode('utf-8').startswith('Voce 7 àèìòù €'), 'zip: 200 messaggi -> 201 file, testzip OK')
+    check(not errs, 'zip: nessun errore JS')
+    cz.close()
+    # share: usato per primo se disponibile
+    SHARE_OK = "navigator.canShare = () => true; navigator.share = d => { window.__sh = d.files.map(f => f.name + ':' + f.type + ':' + f.size); return Promise.resolve(); };"
+    SHARE_KO = "navigator.canShare = () => true; navigator.share = d => Promise.reject(new Error('non riuscito'));"
+    SHARE_AB = "navigator.canShare = () => true; navigator.share = d => Promise.reject(new DOMException('annullato', 'AbortError'));"
+    for nome, scr, atteso in [('riuscito', SHARE_OK, 0), ('fallito', SHARE_KO, 1), ('annullato', SHARE_AB, 0)]:
+        csh, q = nuovo(UTC(2026, 10, 6, 20, 40), scr); q.evaluate(SEEDJS); n_dl = []
+        q.on('download', lambda d_: n_dl.append(d_)); q.click('#arc-open'); q.click('#arc-share'); q.wait_for_timeout(600)
+        if nome == 'riuscito':
+            sh = q.evaluate('window.__sh')
+            check(sh and len(sh) == 1 and sh[0].startswith('Reportistica_archivio_2026-10-06.zip:application/zip:'), 'condividi: navigator.share({files}) provato e e riceve il file zip')
+        check(len(n_dl) == atteso, 'condividi: share ' + nome + ' -> ' + ('ricade sul download' if atteso else 'nessun download'))
+        csh.close()
+
+    # ---- Zip: "Salva file" resta solo download anche se share esiste ----
+    errs.clear()
+    cs2, q = nuovo(UTC(2026, 10, 6, 20, 40), SHARE_OK); q.evaluate(SEEDJS); n_dl = []
+    q.on('download', lambda d_: n_dl.append(d_)); q.click('#arc-open'); q.click('#arc-zip'); q.wait_for_timeout(600)
+    check(len(n_dl) == 1 and not q.evaluate('window.__sh'), 'zip: "Salva file (zip)" scarica sempre (non usa la condivisione)')
+    cs2.close()
+    # ---- avviso archivio quasi pieno (180/200) e archivio pieno ----
+    def riempi(qq, n):
+        qq.evaluate("n => localStorage.setItem('reportistica.v1.archivio', JSON.stringify({v:1, d:Array.from({length:n}, (_, i) => ({t:'2026-10-0'+(1+i%5)+'T10:'+String(i%60).padStart(2,'0')+':00+02:00', l:'x', r:'turno', x:'msg'+i}))}))", n)
+    errs.clear()
+    cw, q = nuovo(UTC(2026, 10, 6, 20, 40)); q.evaluate(NOWA)
+    check(q.is_hidden('#arc-badge'), 'avviso: home senza badge con archivio vuoto')
+    riempi(q, 179); q.reload(); q.wait_for_selector('#v-home', state='visible')
+    check(q.is_hidden('#arc-badge'), 'avviso: 179 messaggi -> nessun badge in home')
+    q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
+    check(q.is_hidden('#arc-warn'), 'avviso: 179 messaggi -> nessun banner')
+    q.click('#back'); q.click('[data-go=lam]'); q.fill('#la-num-0', '1'); q.fill('#la-testa-0-0', '25.1'); q.click('#la-copy')   # il 180esimo
+    q.click('#back')
+    check(q.is_visible('#arc-badge') and q.inner_text('#arc-badge') == '180/200', 'avviso: al 180esimo messaggio compare il badge 180/200 sul tasto Archivio in home')
+    q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
+    check(q.is_visible('#arc-warn') and q.inner_text('#arc-warn-t') == 'Archivio quasi pieno: 180/200. Salva il file zip' and q.is_visible('#arc-w-zip') and q.is_visible('#arc-w-share'), 'avviso: banner "Archivio quasi pieno: 180/200. Salva il file zip" con scorciatoie Salva/Condividi')
+    with q.expect_download() as dl: q.click('#arc-w-zip')
+    check(dl.value.suggested_filename.endswith('.zip'), 'avviso: scorciatoia Salva del banner scarica lo zip')
+    riempi(q, 200); q.click('#back'); q.click('[data-go=lam]'); q.fill('#la-testa-0-0', '25.2'); q.click('#la-copy'); q.click('#back')
+    check(len(q.evaluate(AK)) == 200 and q.inner_text('#arc-badge') == '200/200' and 'full' in q.get_attribute('#arc-badge', 'class'), 'avviso: a 200 il badge e rosso (200/200), le voci restano 200')
+    q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
+    check(q.inner_text('#arc-warn-t') == 'Archivio pieno: i messaggi più vecchi vengono cancellati', 'avviso: a 200 il banner diventa "Archivio pieno: ..."')
+    # ---- Cancella archivio (3 tocchi) ----
+    check(q.is_visible('#arc-clear') and q.is_enabled('#arc-clear') and q.inner_text('#arc-clear') == 'Cancella archivio' and q.get_attribute('#arc-clear', 'class') == 'danger', 'cancella: tasto rosso in fondo, abilitato')
+    q.click('#arc-clear')
+    check(q.inner_text('#arc-clear') == 'Sei sicuro? Cancella tutto' and len(q.evaluate(AK)) == 200, 'cancella: un solo tocco chiede e non cancella')
+    q.screenshot(path=os.path.join(tempfile.gettempdir(), 'x.png'))
+    q.click('#arc-clear')
+    check(q.inner_text('#arc-clear') == 'Confermi? Non si può annullare' and len(q.evaluate(AK)) == 200, 'cancella: secondo tocco = conferma finale, ancora niente cancellato')
+    q.wait_for_timeout(4400)
+    check(q.inner_text('#arc-clear') == 'Cancella archivio' and len(q.evaluate(AK)) == 200, 'cancella: aspettando si torna indietro e non si cancella')
+    q.click('#arc-clear'); q.click('#arc-clear'); q.click('#arc-clear'); q.wait_for_timeout(100)
+    check(q.evaluate("() => localStorage.getItem('reportistica.v1.archivio')") is None and q.is_visible('#arc-empty') and q.inner_text('#arc-empty') == 'Nessun messaggio salvato' and q.is_hidden('#arc-warn') and q.is_disabled('#arc-clear') and q.is_disabled('#arc-zip') and q.is_disabled('#arc-share'), 'cancella: al terzo tocco cancella tutto; pagina vuota, banner via, tasti disabilitati')
+    q.click('#back')
+    check(q.is_hidden('#arc-badge'), 'cancella: il badge in home sparisce')
+    check(not errs, 'avviso/cancella: nessun errore JS')
+    cw.close()
+    # ---- archivio rovinato / localStorage bloccato: nessun errore, Copia e WhatsApp funzionano ----
+    for nome, val in [('testo non JSON', '{{{non json'), ('versione diversa', '{"v":99,"d":[]}'), ('d non lista', '{"v":1,"d":"abc"}'), ('voci sbagliate', '{"v":1,"d":[null,5,{"t":1},{"t":"2026-10-06T10:00:00+02:00","l":"x","r":"boh","x":"y"}]}')]:
+        errs.clear()
+        cc, q = nuovo(UTC(2026, 10, 6, 20, 40), "try{ if(!sessionStorage.getItem('g')){ localStorage.setItem('reportistica.v1.archivio', %r); sessionStorage.setItem('g','1'); } }catch(e){}" % val); q.evaluate(NOWA)
+        q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible'); vuoto = q.is_visible('#arc-empty') and q.is_disabled('#arc-zip')
+        q.click('#back'); q.click('[data-go=turno]'); q.fill('#in-prod', '5'); q.click('#copy'); q.wait_for_selector('#status', state='visible', timeout=3000)
+        q.click('#back'); q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
+        check(vuoto and q.locator('.arcitem').count() == 1 and not errs, 'archivio rovinato (' + nome + str((vuoto, q.locator('.arcitem').count(), errs)) + '): pagina vuota, poi Copia salva comunque, nessun errore JS')
+        cc.close()
+    errs.clear()
+    cl_, q = nuovo(UTC(2026, 10, 6, 20, 40), "Object.defineProperty(window, 'localStorage', { get(){ throw new Error('bloccato'); } });")
+    q.evaluate(NOWA); q.click('[data-go=turno]'); q.fill('#in-prod', '9'); q.click('#copy'); q.wait_for_selector('#status', state='visible', timeout=3000)
+    st_ok = q.inner_text('#status') in OKCOPIA
+    q.click('#wa'); q.click('#back'); q.click('[data-go=mag]'); q.fill('#mg-in-tot', '1'); q.click('#mg-copy'); q.click('#mg-wa'); q.click('#back'); q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
+    check(st_ok and q.is_visible('#arc-empty') and q.is_disabled('#arc-zip') and not errs, 'archivio: localStorage bloccato -> Copia/WhatsApp funzionano, archivio vuoto, nessun errore JS')
+    cl_.close()
+    # archivio pieno (quota): Copia funziona lo stesso
+    errs.clear()
+    cq, q = nuovo(UTC(2026, 10, 6, 20, 40), "const _s = Storage.prototype.setItem; Storage.prototype.setItem = function(k, v){ if (k === 'reportistica.v1.archivio') throw new DOMException('piena', 'QuotaExceededError'); return _s.call(this, k, v); };")
+    q.click('[data-go=turno]'); q.fill('#in-prod', '9'); q.click('#copy'); q.wait_for_selector('#status', state='visible', timeout=3000)
+    check(q.inner_text('#status') in OKCOPIA and not errs, 'archivio: memoria piena -> Copia funziona lo stesso, nessun errore')
+    cq.close()
+
     b.close()
 srv.shutdown()
 sys.exit(0 if ok else 1)
