@@ -73,6 +73,12 @@ with sync_playwright() as pw:
     check([t[1] for t in tiles] == [False, False, False, True, True] and 'work in progress' in tiles[3][0], 'home: Logistica e Manutenzione disabilitati (work in progress)')
     check(p.title() == 'Reportistica FIL', 'titolo pagina Reportistica FIL')
 
+    # ---- tasto Condividi in home ----
+    sh = p.get_attribute('#share', 'href')
+    import urllib.parse
+    tx = urllib.parse.unquote(sh.split('text=', 1)[1]) if 'text=' in sh else ''
+    check(p.is_visible('#share') and sh.startswith('https://wa.me/?text=') and 'https://lucacavo92-wq.github.io/report-turno/' in tx and tx.startswith('*Reportistica FIL*') and 'Come si usa' not in tx and tx.endswith('arriveranno più avanti.'), 'home: tasto Condividi apre wa.me col testo (link del sito, senza "Come si usa")')
+
     # ---- Report turno: campi visibili subito, niente casella di incolla ----
     p.click('[data-go=turno]'); p.wait_for_selector('#v-turno', state='visible')
     check(p.locator('#src').count() == 0 and p.locator('#gen').count() == 0 and p.locator('#toggle').count() == 0, 'turno: niente casella incolla, niente Genera, niente Modifica')
@@ -225,6 +231,107 @@ with sync_playwright() as pw:
     p.click('#la-copy'); p.wait_for_selector('#la-status', state='visible', timeout=3000)
     check(p.inner_text('#la-status') in ('Copiato', 'Tieni premuto e scegli Copia'), 'lamiere: Copia risponde')
     check(p.get_attribute('#la-wa', 'href').startswith('https://wa.me/?text=*Controllo%20lamiere'), 'lamiere: Apri in WhatsApp ha il testo')
+
+    # ---- Memoria delle ultime impostazioni (localStorage, stesso contesto, ricarico la pagina) ----
+    errs = []
+    LS = "() => Object.keys(localStorage).filter(k => k.startsWith('reportistica.')).sort()"
+    def nuovo(ora=datetime(2026, 9, 29, 22, 40), init=None):
+        c = b.new_context(viewport={'width': 400, 'height': 900})
+        if init: c.add_init_script(init)
+        q = c.new_page(); q.on('pageerror', lambda e: errs.append(str(e)))
+        q.clock.set_fixed_time(ora); q.goto(URL); return c, q
+    def dopo(q):                      # aspetta il salvataggio ritardato (300 ms) e ricarica la pagina
+        q.wait_for_timeout(500); q.reload(); q.wait_for_selector('#v-home', state='visible')
+    c1, q = nuovo()
+    o1 = lambda i: q.eval_on_selector(i, 'e => e.value')
+    check(q.evaluate(LS) == [], 'memoria: a memoria vuota non salva niente')
+    # Report turno
+    q.click('[data-go=turno]')
+    q.fill('#in-prod', '777'); q.fill('#in-ritardi', 'Ritardo 15 min'); q.fill('#in-copertura', '07:30')
+    q.fill('#in-montalbetti', '2')
+    lit = q.locator('li', has=q.locator('#in-montalbetti'))
+    lit.locator('.cas .fix').nth(0).get_by_role('button', name='pieno').click()
+    lit.locator('.cas .fix').nth(1).get_by_role('button', name='metà').click()
+    q.fill('#in-bancali', '4'); q.fill('#st-bancali', 'pronti')
+    q.click('#ck-nearmiss'); q.click('#shiftRow [data-i="2"]')
+    q.locator('li', has=q.locator('#ck-planarita')).get_by_role('button', name='non conforme').click()
+    q.fill('#in-noteq', 'Nota di prova')
+    ot = o1('#out')
+    dopo(q)
+    check(q.evaluate(LS) == ['reportistica.v1.turno'], 'memoria: dopo modifiche del turno esiste solo la chiave reportistica.v1.turno')
+    q.click('[data-go=turno]'); q.wait_for_selector('#v-turno', state='visible')
+    check(q.input_value('#in-prod') == '777' and q.input_value('#in-ritardi') == 'Ritardo 15 min' and q.input_value('#in-copertura') == '07:30', 'memoria turno: numero, testo e orario copertura tornano dopo il ricaricamento')
+    check(q.input_value('#in-montalbetti') == '2' and q.input_value('#in-bancali') == '4' and q.input_value('#st-bancali') == 'pronti', 'memoria turno: cassoni (numero) e bancali tornano')
+    check(q.is_checked('#ck-nearmiss') is False and q.is_checked('#ck-dpi') is True, 'memoria turno: caselle abilita/disabilita tornano')
+    check(q.input_value('#in-noteq') == 'Nota di prova', 'memoria turno: note tornano')
+    ot2 = o1('#out')
+    check(ot2.split('\n', 1)[1] == ot.split('\n', 1)[1], "memoria turno: il messaggio (tolta la riga turno/data) e' identico a prima")
+    check('Cassone Montalbetti: 2 (pieno, metà)' in ot2 and 'planarità non conforme' in ot2, 'memoria turno: stati dei cassoni e scelta non conforme tornano')
+    check(ot2.startswith('*Report turno 14-22 del 29/09*') and q.get_attribute('#shiftRow [data-i="2"]', 'aria-pressed') == 'false', "memoria turno: turno e data NON si memorizzano (tornano dall'ora, 22:40 -> 14-22)")
+    # Magazzino (memoria separata)
+    q.click('#back'); q.click('[data-go=mag]'); q.wait_for_selector('#v-mag', state='visible')
+    check(q.input_value('#mg-in-tot') == '' and q.input_value('#mg-in-risaliti') == '', 'memoria: il magazzino non prende i valori del turno (separate)')
+    q.fill('#mg-in-tot', '55'); q.fill('#mg-in-risaliti', '1'); q.click('#mg-st-risaliti-0-metà'); q.fill('#mg-note-risaliti', 'nuovo')
+    q.fill('#mg-in-scM', '3'); q.click('#mg-st-scM-2-pieno'); q.click('#mg-ck-q3'); q.fill('#mg-in-q5', 'Frase mia')
+    om = o1('#mg-out')
+    dopo(q)
+    check(q.evaluate(LS) == ['reportistica.v1.magazzino', 'reportistica.v1.turno'], 'memoria: due chiavi separate (turno e magazzino)')
+    q.click('[data-go=mag]'); q.wait_for_selector('#v-mag', state='visible')
+    check(q.input_value('#mg-in-tot') == '55' and q.input_value('#mg-in-risaliti') == '1' and q.input_value('#mg-note-risaliti') == 'nuovo' and q.input_value('#mg-in-scM') == '3', 'memoria magazzino: numeri, cassoni, nota tornano')
+    check(q.is_checked('#mg-ck-q3') is False and q.input_value('#mg-in-q5') == 'Frase mia', 'memoria magazzino: caselle e frasi tornano')
+    check(o1('#mg-out') == om and '• 1 cassone Risaliti metà nuovo' in om, 'memoria magazzino: messaggio identico a prima (stati cassoni compresi)')
+    q.click('#back'); q.click('[data-go=turno]')
+    check(q.input_value('#in-prod') == '777', "memoria: il turno non e' cambiato quando si lavora sul magazzino")
+    # Lamiere
+    q.click('#back'); q.click('[data-go=lam]'); q.wait_for_selector('#v-lam', state='visible')
+    q.fill('#la-num-0', '19223'); q.fill('#la-testa-0-0', '25.7'); q.fill('#la-larg-0-1', '2064')
+    q.click('#la-add'); q.fill('#la-num-1', '19224'); q.fill('#la-lung-1-0', '12285')
+    ol = o1('#la-out')
+    dopo(q)
+    q.click('[data-go=lam]'); q.wait_for_selector('#v-lam', state='visible')
+    check(q.locator('#la-lots .group').count() == 2 and q.input_value('#la-num-1') == '19224' and q.input_value('#la-testa-0-0') == '25.7' and q.input_value('#la-larg-0-1') == '2064', 'memoria lamiere: lotti aggiunti e misure tornano')
+    check(o1('#la-out') == ol and 'Lotto 19224' in ol, 'memoria lamiere: messaggio identico a prima')
+    check(q.evaluate(LS) == ['reportistica.v1.lamiere', 'reportistica.v1.magazzino', 'reportistica.v1.turno'], 'memoria: tre chiavi separate')
+    # Azzera: lamiere
+    check(q.is_visible('#azz-lam') and q.inner_text('#azz-lam') == 'Azzera', 'azzera: tasto presente nelle lamiere')
+    q.click('#azz-lam')
+    check(q.inner_text('#azz-lam') == 'Confermi?' and q.locator('#la-lots .group').count() == 2, 'azzera: primo tocco chiede conferma e non cancella')
+    q.click('#azz-lam'); q.wait_for_timeout(100)
+    check(q.locator('#la-lots .group').count() == 1 and o1('#la-out') == '' and q.evaluate("() => localStorage.getItem('reportistica.v1.lamiere')") is None, 'azzera lamiere: valori standard e memoria cancellata')
+    # Azzera: magazzino
+    q.click('#back'); q.click('[data-go=mag]')
+    q.click('#azz-mag'); q.click('#azz-mag'); q.wait_for_timeout(100)
+    check(o1('#mg-out') == MAG_ZERO and q.input_value('#mg-in-tot') == '' and q.evaluate("() => localStorage.getItem('reportistica.v1.magazzino')") is None, 'azzera magazzino: valori standard e memoria cancellata')
+    # Azzera: turno (il turno scelto a mano resta)
+    q.click('#back'); q.click('[data-go=turno]')
+    q.click('#shiftRow [data-i="0"]')
+    q.click('#azz-turno'); q.click('#azz-turno'); q.wait_for_timeout(100)
+    ot3 = o1('#out')
+    check(ot3.startswith('*Report turno 6-14 ') and ot3.split('\n', 1)[1] == ZERO.split('\n', 1)[1] and q.is_checked('#ck-nearmiss') and q.input_value('#in-prod') == '' and q.evaluate("() => localStorage.getItem('reportistica.v1.turno')") is None, 'azzera turno: valori standard, turno scelto resta, memoria cancellata')
+    dopo(q)
+    q.click('[data-go=turno]'); q.wait_for_selector('#v-turno', state='visible')
+    check(o1('#out') == ZERO and q.evaluate(LS) == [], 'azzera: dopo il ricaricamento riparte da zero, niente salvato')
+    # turno e data seguono l'ora anche con la memoria piena
+    q.fill('#in-prod', '5'); q.wait_for_timeout(500)
+    q.clock.set_fixed_time(datetime(2026, 10, 1, 8, 5)); q.reload(); q.click('[data-go=turno]')
+    check(q.input_value('#in-prod') == '5' and o1('#out').startswith('*Report turno 22-6 del 01/10*'), "memoria: valori tornano ma turno/data seguono l'ora nuova (08:05 -> 22-6 del 01/10)")
+    c1.close()
+    # storage corrotto o incompatibile: si parte da zero senza errori
+    for nome, val in [('testo non JSON', '{{{non json'), ('versione diversa', '{"v":99,"d":{"values":{"prod":"1"}}}'), ('tipi sbagliati', '{"v":1,"d":{"values":{"prod":{"x":1},"montalbetti":"zz","planarita":"q","dpi":5},"excluded":"abc"}}'), ('lotti sbagliati', '{"v":1,"d":[{"num":5},null]}')]:
+        init = "try{localStorage.setItem('reportistica.v1.turno', %r); localStorage.setItem('reportistica.v1.magazzino', %r); localStorage.setItem('reportistica.v1.lamiere', %r)}catch(e){}" % (val, val, val)
+        errs.clear()
+        c2, q = nuovo(init=init)
+        q.click('[data-go=turno]'); a = q.eval_on_selector('#out', 'e => e.value')
+        q.click('#back'); q.click('[data-go=mag]'); bm = q.eval_on_selector('#mg-out', 'e => e.value')
+        q.click('#back'); q.click('[data-go=lam]'); cl = q.eval_on_selector('#la-out', 'e => e.value')
+        check(a == ZERO and bm == MAG_ZERO and cl == '' and not errs, 'memoria corrotta (' + nome + '): parte da zero, nessun errore JS')
+        c2.close()
+    # localStorage non disponibile (finestra privata ecc.): l'app funziona lo stesso
+    errs.clear()
+    c3, q = nuovo(init="Object.defineProperty(window, 'localStorage', { get(){ throw new Error('bloccato'); } });")
+    q.click('[data-go=turno]'); q.fill('#in-prod', '9'); q.wait_for_timeout(500)
+    check('Produzione 9 ton' in q.eval_on_selector('#out', 'e => e.value') and not errs, "memoria: localStorage bloccato -> l'app funziona lo stesso, nessun errore")
+    c3.close()
 
     b.close()
 srv.shutdown()

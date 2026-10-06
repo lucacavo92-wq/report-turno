@@ -98,6 +98,8 @@ body:not([data-view="turno"]) #heroSub{display:none}
 .bar>*{flex:1 1 0;min-width:0}
 .bar>button{flex:0 0 32%;font-size:13.5px}
 .bar>.btn{flex:1 1 0;font-size:15.5px}
+a.share{align-self:center;margin-top:18px;min-height:34px;padding:4px 14px;font-size:13px;font-weight:400;color:var(--muted);background:linear-gradient(180deg,#2b3643 0%,#1d2631 100%);border-color:#44536a;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 3px rgba(0,0,0,.55)}
+button.azz{align-self:flex-end;min-height:30px;padding:3px 10px;font-size:12.5px;font-weight:400;color:var(--muted);background:none;box-shadow:none;border:1px solid var(--line)}
 .status{font-size:13px;color:var(--ok);margin:0}
 @media (prefers-reduced-motion:no-preference){button{transition:none}}
 
@@ -107,6 +109,7 @@ button.primary,.tile:not(:disabled),.btn{background:linear-gradient(180deg,#4c9b
 .shiftRow button[aria-pressed="true"],.seg.st button[aria-pressed="true"]{background:linear-gradient(180deg,#4c9bff,#2884ff 45%,#1b6fe0);border-color:#1558b8;color:#fff}
 .seg button.c[aria-pressed="true"]{background:linear-gradient(180deg,#6fd39d,#4fbf82 45%,#3a9f69);border-color:#2f8658;color:#08170f}
 .seg button.n[aria-pressed="true"]{background:linear-gradient(180deg,#f58b81,#ef6f63 45%,#d4574b);border-color:#b04439;color:#1d0805}
+button.azz,button.azz:active{background:none;box-shadow:none;filter:none;transform:none}
 button:active,.btn:active{transform:translateY(1px);filter:brightness(.9);box-shadow:inset 0 2px 5px rgba(0,0,0,.55)}
 button:disabled,.tile:disabled{background:#161b21;color:#6d7783;border:1px dashed #333e4a;box-shadow:none;transform:none;filter:none}
 </style>
@@ -126,11 +129,13 @@ button:disabled,.tile:disabled{background:#161b21;color:#6d7783;border:1px dashe
       <button class="tile" type="button" disabled>Logistica<small>work in progress</small></button>
       <button class="tile" type="button" disabled>Manutenzione<small>work in progress</small></button>
     </div>
+    <a class="btn share" id="share" href="#" target="_blank" rel="noopener">&#10150; Condividi</a>
   </div>
 
   <div class="view" id="v-turno" hidden>
 
   <section class="card">
+    <button type="button" class="azz" id="azz-turno">Azzera</button>
     <div id="panel">
       <div class="group"><h3>Turno e data</h3>
         <div class="shiftRow" id="shiftRow">
@@ -157,6 +162,7 @@ button:disabled,.tile:disabled{background:#161b21;color:#6d7783;border:1px dashe
 
   <div class="view" id="v-mag" hidden>
     <section class="card">
+      <button type="button" class="azz" id="azz-mag">Azzera</button>
       <div id="mg-panel"><div id="mg-groups"></div></div>
     </section>
     <section class="card">
@@ -172,6 +178,7 @@ button:disabled,.tile:disabled{background:#161b21;color:#6d7783;border:1px dashe
 
   <div class="view" id="v-lam" hidden>
     <section class="card">
+      <button type="button" class="azz" id="azz-lam">Azzera</button>
       <div id="la-panel"><div id="la-lots"></div>
         <button type="button" id="la-add" style="width:100%;margin-top:8px">Aggiungi lotto</button></div>
     </section>
@@ -234,6 +241,53 @@ const DEFAULT = {
 };
 
 const $ = id => document.getElementById(id);
+/* ---------- memoria nel telefono (solo localStorage, niente online) ---------- */
+const MEMS = [];
+function makeMem(key, get, apply){
+  let t = null, def = null;
+  const read = () => { try { const r = localStorage.getItem(key); if (!r) return null; const o = JSON.parse(r); return o && o.v === 1 && o.d ? o.d : null; } catch(e) { return null; } };
+  const write = () => { t = null; try { const st = JSON.stringify(get()); if (st === def) localStorage.removeItem(key); else localStorage.setItem(key, JSON.stringify({ v:1, d:get() })); } catch(e) {} };
+  const m = {
+    mark(){ try { def = JSON.stringify(get()); } catch(e) {} },     // stato di partenza: uguale = niente da salvare
+    restore(){ const d = read(); if (d) { try { apply(d); return true; } catch(e) {} } return false; },
+    save(){ clearTimeout(t); t = setTimeout(write, 300); },
+    flush(){ if (t) { clearTimeout(t); write(); } },
+    clear(){ clearTimeout(t); t = null; try { localStorage.removeItem(key); } catch(e) {} }
+  };
+  MEMS.push(m); return m;
+}
+const memStr = x => typeof x === 'string' ? x.slice(0, 2000) : undefined;
+const memArr = x => Array.isArray(x) ? x.slice(0, 20).map(k => typeof k === 'string' ? k.slice(0, 200) : '') : undefined;
+function memVal(type, x){
+  if (type === 'conf') return x === 'c' || x === 'n' ? x : undefined;
+  if (type === 'cassoni' || type === 'cass') {
+    if (!x || typeof x !== 'object') return undefined;
+    const n = memStr(x.n), s = memArr(x.s); if (n === undefined || !s) return undefined;
+    const o = { n, s }; if (type === 'cass') o.note = memStr(x.note) || ''; return o;
+  }
+  if (type === 'numtext' || type === 'numstate') {
+    if (!x || typeof x !== 'object') return undefined;
+    const n = memStr(x.n), st = memStr(x.s); return n === undefined || st === undefined ? undefined : { n, s: st };
+  }
+  return memStr(x);
+}
+function memValues(src, types){
+  const out = {};
+  if (src && typeof src === 'object') for (const id of Object.keys(types)) { const c = memVal(types[id], src[id]); if (c !== undefined) out[id] = c; }
+  return out;
+}
+function memIds(arr, types){ return Array.isArray(arr) ? arr.filter(id => typeof id === 'string' && id in types) : []; }
+window.addEventListener('pagehide', () => MEMS.forEach(m => m.flush()));
+document.addEventListener('visibilitychange', () => { if (document.hidden) MEMS.forEach(m => m.flush()); });
+// "Azzera": primo tocco chiede conferma, secondo tocco azzera
+function wireAzzera(id, fn){
+  const b = $(id); let t = null;
+  b.onclick = () => {
+    if (t) { clearTimeout(t); t = null; b.textContent = 'Azzera'; fn(); return; }
+    b.textContent = 'Confermi?'; t = setTimeout(() => { t = null; b.textContent = 'Azzera'; }, 3000);
+  };
+}
+
 let gen = false;           // messaggio generato senza report incollato
 let orig = {};            // campi letti dal report di prima
 let checked = new Set();  // campi spuntati
@@ -425,7 +479,7 @@ function renderFields(){
       const row = el('div','fix');
       row.append(el('span','pre','N° cassoni'));
       const n = el('input'); n.type = 'text'; n.inputMode = 'numeric'; n.className = 'n'; n.id = 'in-' + f.id;
-      n.placeholder = 'n°';
+      n.placeholder = 'n°'; n.value = (values[f.id] || {}).n || '';
       const rows = el('div','cas');
       const draw = () => {
         rows.innerHTML = '';
@@ -451,12 +505,12 @@ function renderFields(){
         const paintN = () => { const x = cur().n || (orig[f.id] || {}).n; bn.forEach((b, i) => b.setAttribute('aria-pressed', x === String(f.nums[i]))); };
         paintN(); segN.append(...bn); row.append(segN); focusEl = bn[0];
       } else if (COMPOSITE(f.type)) {
-        const n = el('input'); n.type = 'text'; n.inputMode = 'numeric'; n.className = 'n'; n.placeholder = 'n°'; n.id = 'in-' + f.id;
+        const n = el('input'); n.type = 'text'; n.inputMode = 'numeric'; n.className = 'n'; n.placeholder = 'n°'; n.id = 'in-' + f.id; n.value = cur().n || '';
         n.addEventListener('input', () => { values[f.id] = { ...cur(), n: n.value }; update(); });
         row.append(n); focusEl = n;
       }
       if (f.type === 'numtext') {
-        const st = el('input'); st.type = 'text'; st.placeholder = 'stato'; st.id = 'st-' + f.id;
+        const st = el('input'); st.type = 'text'; st.placeholder = 'stato'; st.id = 'st-' + f.id; st.value = cur().s || '';
         st.addEventListener('input', () => { values[f.id] = { ...cur(), s: st.value }; update(); });
         row.append(st);
       } else {
@@ -504,6 +558,7 @@ function update(){
   $('out').value = text; fit($('out'));
   $('wa').href = 'https://wa.me/?text=' + encodeURIComponent(text);
   $('status').hidden = true;
+  MEMT.save();
 }
 const PRESENTE = { prod:/produzione/i, dpi:/dpi/i, pulizia:/pulizia/i, violenza:/violenza/i, nearmiss:/near\s*miss/i,
   estetica:/estetica/i, planarita:/planarit/i, dimensioni:/larghezz|lunghezz|spessor/i,
@@ -526,12 +581,25 @@ $('copy').onclick = () => {
 // se l'app resta aperta, turno e data si riallineano all'ora quando torni sull'app (se non hai ancora spuntato niente)
 document.addEventListener('visibilitychange', () => { if (!document.hidden && !manual) { setNow(); update(); } });
 
+const TTYPES = Object.fromEntries(FIELDS.map(f => [f.id, f.type]));
+const baseValues = () => { const o = {}; FIELDS.forEach(f => { if (f.type === 'line') o[f.id] = orig[f.id]; }); return o; };
+// si salvano i valori dei campi e le caselle spente; turno e data NO (si ricalcolano dall'ora)
+const MEMT = makeMem('reportistica.v1.turno', () => ({ values, excluded:[...excluded] }), d => {
+  const vals = memValues(d.values, TTYPES), ex = memIds(d.excluded, TTYPES);
+  values = { ...values, ...vals }; excluded = new Set(ex); renderFields(); update();
+});
 load('');
+MEMT.mark(); MEMT.restore();
+wireAzzera('azz-turno', () => { values = baseValues(); excluded = new Set(); renderFields(); update(); MEMT.clear(); });
 
 /* ======================================================================
    Nuove pagine: home, Controllo magazzino, Controllo lamiere
    (codice a parte: il Report turno qui sopra non e' stato toccato)
    ====================================================================== */
+
+// testo del tasto Condividi in fondo alla home (cambiare solo qui)
+const TESTO_CONDIVIDI = '*Reportistica FIL* - l\'app per fare i report di turno\n\nCome installarla sul telefono (1 minuto):\n1. Apri questo link con *Chrome*:\nhttps://lucacavo92-wq.github.io/report-turno/\n2. Tocca i tre puntini ⋮ in alto a destra.\n3. Tocca *Installa app* (oppure *Aggiungi a schermata Home*) e conferma.\n4. Trovi l\'icona FIL sulla schermata Home. Aprila da lì.\n\niPhone: apri il link con *Safari*, tocca il tasto Condividi e poi *Aggiungi a schermata Home*.\n\nLogistica e Manutenzione arriveranno più avanti.';
+$('share').href = 'https://wa.me/?text=' + encodeURIComponent(TESTO_CONDIVIDI);
 
 /* ---------- navigazione tra le pagine ---------- */
 const VIEWS = ['home','turno','mag','lam'];
@@ -696,7 +764,7 @@ const MG = (() => {
         ed.append(focusEl);
       } else if (f.type === 'cass') {
         const row = el('div','fix'); row.append(el('span','pre','N° cassoni'));
-        const n = el('input'); n.type = 'text'; n.inputMode = 'numeric'; n.className = 'n'; n.id = 'mg-in-' + f.id; n.placeholder = 'n°';
+        const n = el('input'); n.type = 'text'; n.inputMode = 'numeric'; n.className = 'n'; n.id = 'mg-in-' + f.id; n.placeholder = 'n°'; n.value = (values[f.id] || {}).n || '';
         const rows = el('div','cas');
         const nq = () => Math.min(20, +(cur().n || '').trim() || 1);
         const draw = () => {
@@ -713,14 +781,14 @@ const MG = (() => {
         n.addEventListener('input', () => { cur().n = n.value.replace(/\D/g, ''); draw(); update(); });
         row.append(n);
         const nt = el('input'); nt.type = 'text'; nt.id = 'mg-note-' + f.id; nt.placeholder = 'nota (es. appena cambiato)';
-        nt.value = (orig[f.id] || {}).note || ''; nt.addEventListener('input', () => { cur().note = nt.value; update(); });
+        nt.value = values[f.id] ? (values[f.id].note || '') : ((orig[f.id] || {}).note || ''); nt.addEventListener('input', () => { cur().note = nt.value; update(); });
         draw(); ed.append(row, rows, nt); focusEl = n;
       }
       paint(); li.append(ed); ul.append(li);
     });
   }
   function update(){
-    setOut('mg', build());
+    setOut('mg', build()); if (typeof mem !== 'undefined') mem.save();
   }
   function load(text){
     const p = parse(text || ''); orig = p; checked = new Set(F.map(f => f.id)); values = {};
@@ -729,7 +797,13 @@ const MG = (() => {
     render(); update();
   }
   wireCopy('mg-out', 'mg-copy', 'mg-status');
+  const MTYPES = Object.fromEntries(F.map(f => [f.id, f.type]));
+  const mem = makeMem('reportistica.v1.magazzino', () => ({ values, excluded:[...excluded] }), d => {
+    values = { ...values, ...memValues(d.values, MTYPES) }; excluded = new Set(memIds(d.excluded, MTYPES)); render(); update();
+  });
   load('');
+  mem.mark(); mem.restore();
+  wireAzzera('azz-mag', () => { load(''); mem.clear(); });
   return { update, parse, build };
 })();
 
@@ -767,7 +841,7 @@ const LAM = (() => {
     if (!blocks.length) return '';
     return [FMT.titolo, ...blocks.flatMap((b, i) => i ? ['', ...b] : b)].join('\n');
   }
-  function update(){ setOut('la', build()); }
+  function update(){ setOut('la', build()); if (typeof mem !== 'undefined') mem.save(); }
 
   function inp(arr, i, id){ const e = el('input'); e.type = 'text'; e.inputMode = 'decimal'; e.id = id; e.value = arr[i];
     e.addEventListener('input', () => { arr[i] = e.value; update(); }); return e; }
@@ -797,7 +871,17 @@ const LAM = (() => {
   }
   $('la-add').onclick = () => { lots.push(newLot()); render(); update(); $(`la-num-${lots.length - 1}`).focus(); };
   wireCopy('la-out', 'la-copy', 'la-status');
+  const strs = (a, n) => Array.isArray(a) ? Array.from({ length:n }, (_, i) => typeof a[i] === 'string' ? a[i].slice(0, 50) : '') : null;
+  const mem = makeMem('reportistica.v1.lamiere', () => lots, d => {
+    if (!Array.isArray(d) || !d.length) return;
+    const ok = d.slice(0, 50).map(L => { if (!L || typeof L.num !== 'string') return null; const o = { num:L.num.slice(0, 50) };
+      for (const k of Object.keys(SIZES)) { o[k] = strs(L[k], SIZES[k]); if (!o[k]) return null; } return o; });
+    if (ok.some(x => !x)) return;
+    lots = ok; render(); update();
+  });
   render(); update();
+  mem.mark(); mem.restore();
+  wireAzzera('azz-lam', () => { lots = [newLot()]; render(); update(); mem.clear(); });
   return { update, parse, build };
 })();
 
