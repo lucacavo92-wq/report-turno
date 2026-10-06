@@ -1,7 +1,8 @@
 {
-  "name": "Report turno FIL",
-  "short_name": "Report turno",
+  "name": "Reportistica FIL",
+  "short_name": "Reportistica",
   "lang": "it",
+  "id": "report-turno-nuova",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

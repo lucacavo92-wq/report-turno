@@ -17,7 +17,7 @@ Ogni turno si manda sul gruppo WhatsApp "FIL A.S.Q" un report quasi sempre ugual
   Dopo ogni modifica: `python3 tools/build.py`.
 - `index.html` — app installabile (PWA) per GitHub Pages: https://lucacavo92-wq.github.io/report-turno/
 - `manifest.webmanifest`, `sw.js` (offline; prima prova la rete), `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, `logo.svg`.
-  **Se cambi l'app, aumenta la versione `CACHE` in `sw.js`** (ora `report-turno-v5`).
+  **Se cambi l'app, aumenta la versione `CACHE` in `sw.js`** (ora `report-turno-nuova-v2`).
 - `tools/prova.js` — prova automatica: `NODE_PATH=$(npm root -g) node tools/prova.js` (usa Chromium in /opt/pw-browsers).
 - Pagina Claude: https://claude.ai/artifact/2kxs19zG365LzmRw4w3SV5 — per aggiornarla da una nuova sessione pubblicare
   `src/app.html` con lo strumento Artifact passando `url` = quel link (prima fare `read` del link). Non mettere il logo vero lì.

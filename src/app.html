@@ -1,4 +1,4 @@
-<title>Report Turno FIL</title>
+<title>Reportistica FIL</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&family=Roboto+Mono:wght@500&display=swap">
 <style>
@@ -34,7 +34,6 @@ header{display:flex;align-items:center;gap:14px;background:var(--panel);border-b
 h2{margin:0;font:400 17px/1.2 var(--f-display);text-transform:uppercase;color:var(--accent)}
 textarea,input{font:inherit;color:var(--ink);background:var(--soft);border:1px solid var(--line);border-radius:2px;padding:10px;width:100%}
 textarea{resize:vertical;min-height:70px;line-height:1.45}
-#src{min-height:0;height:44px;resize:none;font-size:12px;line-height:1.3;padding:6px 8px;overflow:hidden}
 textarea:focus-visible,input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 button,.btn{font:600 15px/1.1 var(--f-body);border-radius:2px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:13px 14px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-align:center}
 button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
@@ -44,16 +43,13 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--a
 .shiftRow button[aria-pressed="true"]{background:var(--steel);border-color:var(--steel);color:var(--panel)}
 .shiftRow input{grid-column:1/-1;font-family:var(--f-mono);min-width:0}
 
-#toggle{width:100%;font-size:16px;padding:12px;text-transform:uppercase;letter-spacing:.5px}
-#toggle .cnt{font:500 12px/1 var(--f-mono);background:var(--accent-ink);color:var(--accent);text-transform:none;border-radius:10px;padding:3px 7px}
 .group h3{margin:14px 0 2px;font:400 18px/1.2 var(--f-display);text-transform:uppercase;color:var(--accent)}
 .group ul{list-style:none;margin:0;padding:0}
 .group li{border-top:1px solid var(--line);padding:10px 0;display:flex;flex-direction:column;gap:8px}
 .frow{display:flex;align-items:center;gap:10px}
-.frow{cursor:pointer}
 .frow .t{flex:1;min-width:0}
+.frow .name{font-weight:600}
 .tri{flex:0 0 26px;height:26px;padding:0;font:700 15px/1 var(--f-body);border-radius:4px;background:var(--panel);color:var(--muted);border:2px solid var(--muted)}
-.tri[data-st="edit"]{background:var(--accent);border-color:var(--accent);color:#fff}
 .tri[data-st="off"]{background:var(--soft);border-color:var(--line);color:var(--bad)}
 .group li.off .name,.group li.off .cur{opacity:.45;text-decoration:line-through}
 .ck{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
@@ -62,7 +58,7 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--a
 .ck .name{font-weight:600}
 .ck .cur{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ck .cur.bad{color:var(--bad)}
-.ed{padding-left:36px;display:flex;flex-direction:column;gap:6px}
+.ed{padding-left:0;display:flex;flex-direction:column;gap:6px}
 .fix{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .fix .pre,.fix .suf{font-size:14px;color:var(--muted)}
 .fix input{flex:1 1 120px;min-width:0}
@@ -77,7 +73,22 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--a
 .seg button.c[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:var(--panel)}
 .seg button.n[aria-pressed="true"]{background:var(--bad);border-color:var(--bad);color:var(--panel)}
 
-#out{min-height:240px;font-size:13.5px}
+#out,#mg-out,#la-out{min-height:240px;font-size:13.5px}
+.view{display:flex;flex-direction:column;gap:10px}
+.backbtn{flex:0 0 40px;width:40px;height:40px;padding:0;font-size:22px;line-height:1;border-radius:2px;background:var(--panel);color:var(--accent);border:1px solid var(--line)}
+.htitle h1.long{font-size:20px}
+body:not([data-view="turno"]) #heroSub{display:none}
+.tiles{display:flex;flex-direction:column;gap:12px;margin-top:6px}
+.tile{width:100%;min-height:78px;flex-direction:column;gap:4px;font:600 20px/1.2 var(--f-display);text-transform:uppercase;letter-spacing:.5px;border-radius:2px;box-shadow:var(--shadow)}
+.tile small{font:600 12px/1 var(--f-body);text-transform:none;letter-spacing:0}
+.tile:disabled{background:var(--soft);color:var(--muted);border:1px dashed var(--line);box-shadow:none;cursor:not-allowed}
+.fix.multi{align-items:center}
+.fix.multi .pre{flex:0 0 100%}
+.fix.multi input{flex:1 1 0;min-width:0;font-family:var(--f-mono);font-size:16px}
+.fix.multi .pre.lbl{flex:0 0 auto}
+.lotbar{display:flex;gap:8px;justify-content:space-between;align-items:center}
+.lotbar h3{margin:14px 0 2px}
+.lotbar button{padding:8px 12px;font-size:13px}
 .bar{display:flex;gap:8px;flex-wrap:wrap}
 .bar>*{flex:1 1 150px}
 .status{font-size:13px;color:var(--ok);margin:0}
@@ -86,17 +97,25 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--a
 
 <div class="wrap">
   <header>
+    <button class="backbtn" id="back" type="button" aria-label="Torna alla home" hidden>&larr;</button>
     <div class="logo" id="logo" aria-label="FIL">FIL</div>
-    <div class="htitle"><h1>Report turno</h1><p id="heroSub">&nbsp;</p></div>
+    <div class="htitle"><h1 id="hTitle">Reportistica</h1><p id="heroSub">&nbsp;</p></div>
   </header>
 
-  <section class="card">
-    <textarea id="src" spellcheck="false" aria-label="Report precedente" placeholder="Incolla il report precedente"></textarea>
-  </section>
+  <div class="view" id="v-home">
+    <div class="tiles">
+      <button class="primary tile" type="button" data-go="turno">Report turno</button>
+      <button class="primary tile" type="button" data-go="mag">Controllo magazzino</button>
+      <button class="primary tile" type="button" data-go="lam">Controllo lamiere</button>
+      <button class="tile" type="button" disabled>Logistica<small>work in progress</small></button>
+      <button class="tile" type="button" disabled>Manutenzione<small>work in progress</small></button>
+    </div>
+  </div>
+
+  <div class="view" id="v-turno" hidden>
 
   <section class="card">
-    <button class="primary" id="toggle" type="button" aria-expanded="false">Modifica <span class="cnt" id="cnt" hidden></span></button>
-    <div id="panel" hidden>
+    <div id="panel">
       <div class="group"><h3>Turno e data</h3>
         <div class="shiftRow" id="shiftRow">
           <button type="button" data-i="0">6-14</button>
@@ -111,7 +130,6 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--a
 
   <section class="card">
     <h2>Messaggio pronto</h2>
-    <button class="primary" id="gen" type="button" hidden>Genera messaggio</button>
     <textarea id="out" readonly aria-label="Messaggio pronto"></textarea>
     <div class="bar">
       <button class="primary" id="copy" type="button">Copia</button>
@@ -119,6 +137,38 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--a
     </div>
     <p class="status" id="status" role="status" hidden></p>
   </section>
+  </div>
+
+  <div class="view" id="v-mag" hidden>
+    <section class="card">
+      <div id="mg-panel"><div id="mg-groups"></div></div>
+    </section>
+    <section class="card">
+      <h2>Messaggio pronto</h2>
+      <textarea id="mg-out" readonly aria-label="Messaggio pronto"></textarea>
+      <div class="bar">
+        <button class="primary" id="mg-copy" type="button">Copia</button>
+        <a class="btn" id="mg-wa" href="#" target="_blank" rel="noopener">Apri in WhatsApp</a>
+      </div>
+      <p class="status" id="mg-status" role="status" hidden></p>
+    </section>
+  </div>
+
+  <div class="view" id="v-lam" hidden>
+    <section class="card">
+      <div id="la-panel"><div id="la-lots"></div>
+        <button type="button" id="la-add" style="width:100%;margin-top:12px">Aggiungi lotto</button></div>
+    </section>
+    <section class="card">
+      <h2>Messaggio pronto</h2>
+      <textarea id="la-out" readonly aria-label="Messaggio pronto"></textarea>
+      <div class="bar">
+        <button class="primary" id="la-copy" type="button">Copia</button>
+        <a class="btn" id="la-wa" href="#" target="_blank" rel="noopener">Apri in WhatsApp</a>
+      </div>
+      <p class="status" id="la-status" role="status" hidden></p>
+    </section>
+  </div>
 </div>
 
 <script>
@@ -267,7 +317,7 @@ function setNow(){ const a = autoShift(new Date()); shift = a.s; $('date').value
 
 /* ---------- messaggio nuovo ---------- */
 // quanti cassoni: il numero scritto nel box, altrimenti quello di prima, altrimenti 1
-function quanti(id){ const x = values[id] || {}; return Math.min(20, +(x.n || '').trim() || +(orig[id] || {}).n || 1); }
+function quanti(id){ const x = values[id] || {}; return Math.min(20, +(x.n || '').trim() || +(orig[id] || {}).n || 0); }
 function v(id){
   const t = BYID[id].type;
   if (t === 'cassoni') {
@@ -275,6 +325,7 @@ function v(id){
     if (!checked.has(id)) return o;
     const x = values[id] || {};
     const n = quanti(id);
+    if (!n) return { n:'', s:[] };
     return { n: String(n), s: Array.from({length:n}, (_, i) => (x.s || [])[i] || o.s[i] || '') };
   }
   if (COMPOSITE(t)) {
@@ -336,17 +387,17 @@ function renderFields(){
       const g = el('div','group'); g.append(el('h3', null, grp)); ul = el('ul'); g.append(ul); box.append(g);
     }
     const li = el('li');
-    // un solo quadratino a 3 stati: vuoto = com'era, ✎ = da modificare (box aperto), ✕ = tolto dal messaggio
-    const top = el('div','frow ck');
-    const tri = el('button','tri'); tri.type = 'button'; tri.id = 'ck-' + f.id;
-    const t = el('span','t'); t.append(el('span','name', f.name));
-    const cur = el('span','cur', show(f, orig[f.id])); if (f.type === 'conf' && orig[f.id] === 'n') cur.classList.add('bad');
-    t.append(cur); top.append(tri, t); li.append(top);
+    const top = el('div','frow');
+    const t = el('span','t'); t.append(el('span','name', f.name)); top.append(t); li.append(top);
     const ed = el('div','ed');
-    const stato = () => excluded.has(f.id) ? 'off' : checked.has(f.id) ? 'edit' : 'keep';
-    const paint = () => { const st = stato(); tri.dataset.st = st; tri.textContent = st === 'edit' ? '✎' : st === 'off' ? '✕' : '';
-      tri.setAttribute('aria-label', f.name + ': ' + (st === 'edit' ? 'da modificare' : st === 'off' ? 'tolto dal messaggio' : 'come prima'));
-      li.classList.toggle('off', st === 'off'); ed.hidden = st !== 'edit'; };
+    const paint = () => { const off = excluded.has(f.id); li.classList.toggle('off', off); ed.hidden = off;
+      if (tri) { tri.dataset.st = off ? 'off' : 'keep'; tri.setAttribute('aria-label', f.name + (off ? ': tolto dal messaggio' : ': nel messaggio')); } };
+    let tri = null;
+    if (f.type === 'line' || f.type === 'conf') {      // la piccola ✕ solo dove serve: toglie la voce dal messaggio
+      tri = el('button','tri', '✕'); tri.type = 'button'; tri.id = 'ck-' + f.id;
+      tri.onclick = () => { if (excluded.has(f.id)) excluded.delete(f.id); else excluded.add(f.id); paint(); update(); };
+      top.append(tri);
+    }
     let focusEl;
     if (f.type === 'conf') {
       const seg = el('div','seg');
@@ -361,7 +412,7 @@ function renderFields(){
       const row = el('div','fix');
       row.append(el('span','pre','N° cassoni'));
       const n = el('input'); n.type = 'text'; n.inputMode = 'numeric'; n.className = 'n'; n.id = 'in-' + f.id;
-      n.placeholder = (orig[f.id] || {}).n || '1';
+      n.placeholder = 'n°';
       const rows = el('div','cas');
       const draw = () => {
         rows.innerHTML = '';
@@ -422,14 +473,6 @@ function renderFields(){
         ed.append(row);
       } else ed.append(focusEl);
     }
-    top.onclick = () => {
-      const st = stato();
-      if (st === 'keep') checked.add(f.id);
-      else if (st === 'edit') { checked.delete(f.id); excluded.add(f.id); }
-      else excluded.delete(f.id);
-      paint(); update();
-      if (stato() === 'edit') focusEl.focus();
-    };
     paint();
     li.append(ed); ul.append(li);
   });
@@ -438,31 +481,23 @@ function fit(e){ e.style.height = 'auto'; e.style.height = Math.max(240, e.scrol
 function update(){
   const [, mm, dd] = ($('date').value || isoDate(new Date())).split('-');
   $('heroSub').textContent = `Turno ${SHIFTS[shift]} del ${dd}/${mm}`;
-  const has = $('src').value.trim() !== '';
-  $('gen').hidden = has || gen;                 // senza report incollato si genera da zero col tasto
-  const text = has || gen ? build() : '';
+  const text = build();                          // il messaggio e' sempre pronto (frasi standard)
   $('out').value = text; fit($('out'));
   $('wa').href = 'https://wa.me/?text=' + encodeURIComponent(text);
   $('status').hidden = true;
-  const n = checked.size;
-  $('cnt').hidden = !n; $('cnt').textContent = n;
 }
 const PRESENTE = { prod:/produzione/i, dpi:/dpi/i, pulizia:/pulizia/i, violenza:/violenza/i, nearmiss:/near\s*miss/i,
   estetica:/estetica/i, planarita:/planarit/i, dimensioni:/larghezz|lunghezz|spessor/i,
   scrubber:/scrubber/i, convog:/convogliate/i, diffuse:/diffuse/i, segn:/segnalazioni/i };
 function load(text){
-  orig = parse(text || ''); checked = new Set(); values = {}; manual = false;
+  orig = parse(text || ''); checked = new Set(FIELDS.map(f => f.id)); values = {}; manual = false;
+  FIELDS.forEach(f => { if (f.type === 'line') values[f.id] = orig[f.id]; });   // campi sempre visibili, frase standard gia' scritta
   excluded = new Set(text && text.trim() ? Object.keys(PRESENTE).filter(id => !PRESENTE[id].test(text)) : []);
   setNow(); renderFields(); update();
 }
 
-$('src').addEventListener('input', () => { if ($('src').value.trim()) gen = false; load($('src').value); });
-$('gen').onclick = () => { gen = true; update(); };
+// (la casella "incolla il report precedente" e' stata tolta il 06/10/2026; parse() e load(testo) restano nel codice ma non si raggiungono)
 $('date').addEventListener('change', () => { manual = true; update(); });
-$('toggle').onclick = () => {
-  const open = $('panel').hidden;
-  $('panel').hidden = !open; $('toggle').setAttribute('aria-expanded', open);
-};
 $('copy').onclick = () => {
   const text = $('out').value; if (!text) return;
   const say = m => { $('status').textContent = m; $('status').hidden = false; };
@@ -473,4 +508,283 @@ $('copy').onclick = () => {
 document.addEventListener('visibilitychange', () => { if (!document.hidden && !manual) { setNow(); update(); } });
 
 load('');
+
+/* ======================================================================
+   Nuove pagine: home, Controllo magazzino, Controllo lamiere
+   (codice a parte: il Report turno qui sopra non e' stato toccato)
+   ====================================================================== */
+
+/* ---------- navigazione tra le pagine ---------- */
+const VIEWS = ['home','turno','mag','lam'];
+const TITLES = { home:'Reportistica', turno:'Report turno', mag:'Controllo magazzino', lam:'Controllo lamiere' };
+function showView(n){
+  if (!VIEWS.includes(n)) n = 'home';
+  VIEWS.forEach(x => $('v-' + x).hidden = x !== n);
+  document.body.dataset.view = n;
+  $('hTitle').textContent = TITLES[n];
+  $('hTitle').classList.toggle('long', n === 'mag' || n === 'lam');
+  $('back').hidden = n === 'home';
+  window.scrollTo(0, 0);
+  if (n === 'turno') update(); else if (n === 'mag') MG.update(); else if (n === 'lam') LAM.update();
+}
+document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => { location.hash = b.dataset.go; });
+$('back').onclick = () => { if (location.hash) history.back(); else showView('home'); };
+window.addEventListener('hashchange', () => showView(location.hash.slice(1)));
+
+/* ---------- pezzi in comune delle nuove pagine ---------- */
+function wireCopy(outId, copyId, statusId){
+  $(copyId).onclick = () => {
+    const text = $(outId).value; if (!text) return;
+    const say = m => { $(statusId).textContent = m; $(statusId).hidden = false; };
+    const fallback = () => { const o = $(outId); o.focus(); o.select(); try { document.execCommand('copy') ? say('Copiato') : say('Tieni premuto e scegli Copia'); } catch(e) { say('Tieni premuto e scegli Copia'); } };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => say('Copiato'), fallback); else fallback();
+  };
+}
+function setOut(prefix, text){
+  $(prefix + '-out').value = text; fit($(prefix + '-out'));
+  $(prefix + '-wa').href = 'https://wa.me/?text=' + encodeURIComponent(text);
+  $(prefix + '-status').hidden = true;
+}
+const normSt = k => /^pien/i.test(k) ? 'pieno' : /^met/i.test(k) ? 'metà' : 'vuoto';
+const ST_RE = /pien\w*|met\w*|vuot\w*/i;
+
+/* ---------- CONTROLLO MAGAZZINO ---------- */
+const MG = (() => {
+  const SALUTO_MG = 'Buongiorno,';
+  const TITOLO_MG = '*Controllo magazzino*';
+  const F = [
+    { g:'Pacchi', id:'tot',   name:'Totale pacchi in magazzino',  type:'num', fmt:x => `Totale pacchi in magazzino: ${x}` },
+    { g:'Pacchi', id:'sped',  name:'Pacchi spedibili',            type:'num', fmt:x => `Pacchi spedibili: ${x}` },
+    { g:'Pacchi', id:'intest',name:'Fasce di intestature a terra',type:'num', fmt:x => `${x} fasce di intestature a terra` },
+    { g:'Cassoni e bat', id:'risaliti', name:'Cassone Risaliti', type:'cass' },
+    { g:'Cassoni e bat', id:'bat',      name:'Bat',              type:'num', fmt:x => `${x} bat` },
+    { g:'Scoria', id:'scM', name:'Mag. Lamiere',  type:'cassS' },
+    { g:'Scoria', id:'scB', name:'Taglio bramme', type:'gp' },
+    { g:'Controllo qualità pacchi', id:'q1', name:'Superficie',            type:'line', def:'Superficie conforme' },
+    { g:'Controllo qualità pacchi', id:'q2', name:'Superficie inferiore',  type:'line', def:'Superficie inferiore conforme' },
+    { g:'Controllo qualità pacchi', id:'q3', name:'Tagli',                 type:'line', def:'I tagli sono abbastanza puliti' },
+    { g:'Controllo qualità pacchi', id:'q4', name:'Segni dei cilindri',    type:'line', def:'Nessun segno dei cilindri di laminazione' },
+    { g:'Controllo qualità pacchi', id:'q5', name:'Segni della spianatrice', type:'line', def:'Visibili segni della spianatrice lato strada e lato ferrovia' },
+  ];
+  const BY = Object.fromEntries(F.map(f => [f.id, f]));
+  const emptyOf = f => f.type === 'num' ? '' : f.type === 'line' ? f.def : f.type === 'cass' ? {n:'',s:'',note:''} : f.type === 'cassS' ? {n:'',s:''} : {g:'',p:''};
+  const DEF = Object.fromEntries(F.map(f => [f.id, emptyOf(f)]));
+  const MSECT = /^\s*\*?\s*(controllo\s+magazzino|scoria|controllo\s+qualit[aà]\s+pacchi)\s*\*?\s*:?\s*$/i;
+  let gen = false, orig = {}, checked = new Set(), excluded = new Set(), values = {};
+  const on = id => !excluded.has(id);
+
+  function parse(text){
+    const f = JSON.parse(JSON.stringify(DEF)); f.xm = []; f.xs = []; f.xq = []; const found = new Set();
+    let ls = clean(text).split('\n');
+    const h = ls.findIndex(l => /controllo\s+magazzino/i.test(l));
+    if (h >= 0) ls = ls.slice(h + 1);            // saluti e titolo si ignorano
+    let sec = 'main', pend = null;
+    for (const raw of ls) {
+      const l = raw.trim(); if (!l) continue;
+      const m = l.match(MSECT);
+      if (m) { sec = /scoria/i.test(m[1]) ? 'scoria' : /qualit/i.test(m[1]) ? 'qual' : 'main'; pend = null; continue; }
+      const s = l.replace(BUL, '').replace(/\*/g, '').trim(); if (!s) continue;
+      let x;
+      if (sec === 'main') {
+        if ((x = s.match(/totale\s+pacchi[^:\d]*:?\s*(\d+)/i))) f.tot = x[1];
+        else if ((x = s.match(/pacchi\s+spedibili[^:\d]*:?\s*(\d+)/i))) f.sped = x[1];
+        else if (/intestatur/i.test(s)) f.intest = (s.match(/\d+/) || [''])[0];
+        else if (/risaliti/i.test(s)) {
+          const n = (s.match(/^\s*(\d+)/) || [])[1] || '';
+          const rest = s.replace(/^\s*\d*\s*cass(?:oni|one)\s*/i, '').replace(/^risaliti\s*/i, '');
+          const k = rest.match(/^(pien\w*|met\w*|vuot\w*)\s*(.*)$/i);
+          f.risaliti = k ? { n, s:normSt(k[1]), note:k[2].trim() } : { n, s:'', note:rest.trim() };
+        }
+        else if ((x = s.match(/^(\d+)\s+bat\b/i))) f.bat = x[1];
+        else f.xm.push(s);
+      } else if (sec === 'scoria') {
+        const lab = s.match(/^(mag\.?\s*lamiere|taglio\s+bramme)\s*:?\s*(.*)$/i);
+        let target, rest;
+        if (lab) { target = /mag/i.test(lab[1]) ? 'scM' : 'scB'; rest = lab[2]; pend = rest ? null : target; }
+        else if (pend) { target = pend; rest = s; pend = null; }
+        else { f.xs.push(s); continue; }
+        if (!rest) continue;
+        if (target === 'scM') { const k = rest.match(ST_RE); f.scM = { n:(rest.match(/^\s*(\d+)/) || [])[1] || '', s:k ? normSt(k[0]) : '' }; }
+        else { const g = rest.match(/grande\s+(pien\w*|met\w*|vuot\w*)/i), p = rest.match(/piccol\w*\s+(pien\w*|met\w*|vuot\w*)/i);
+          f.scB = { g:g ? normSt(g[1]) : '', p:p ? normSt(p[1]) : '' }; }
+      } else {
+        const q = /^superficie\s+inferiore/i.test(s) ? 'q2' : /^superficie/i.test(s) ? 'q1' : /tagli/i.test(s) ? 'q3' : /cilindri/i.test(s) ? 'q4' : /spianatrice/i.test(s) ? 'q5' : null;
+        if (q) { f[q] = s; found.add(q); } else f.xq.push(s);
+      }
+    }
+    f.found = found;
+    return f;
+  }
+
+  function v(id){
+    const o = orig[id], f = BY[id];
+    if (!checked.has(id)) return o;
+    const x = values[id]; if (x === undefined) return o;
+    const pick = (k) => x[k] !== undefined ? x[k] : o[k];
+    if (f.type === 'num' || f.type === 'line') return String(x).trim() || o;
+    if (f.type === 'cass') return { n:(x.n || '').trim() || o.n, s:pick('s'), note:x.note !== undefined ? x.note.trim() : o.note };
+    if (f.type === 'cassS') return { n:(x.n || '').trim() || o.n, s:pick('s') };
+    return { g:pick('g'), p:pick('p') };
+  }
+  const stPl = (s, n) => n === '1' ? s : ({pieno:'pieni', 'metà':'metà', vuoto:'vuoti'})[s] || s;
+  const cassWord = n => n === '1' ? 'cassone' : 'cassoni';
+  function rowOf(f, x){
+    if (f.type === 'num') return x ? f.fmt(x) : '';
+    if (f.type === 'line') return (x || '').trim();
+    if (f.type === 'cass') { if (!(x.n || x.s || x.note)) return ''; const n = x.n || '1';
+      return `${n} ${cassWord(n)} Risaliti${x.s ? ' ' + stPl(x.s, n) : ''}${x.note ? ' ' + x.note : ''}`; }
+    if (f.type === 'cassS') { if (!(x.n || x.s)) return ''; const n = x.n || '1';
+      return `${f.name}: ${n} ${cassWord(n)}${x.s ? ' ' + stPl(x.s, n) : ''}`; }
+    const parts = []; if (x.g) parts.push('cassone grande ' + x.g); if (x.p) parts.push((x.g ? '' : 'cassone ') + 'piccolo ' + x.p);
+    return parts.length ? `${f.name}: ${parts.join(', ')}` : '';
+  }
+  const row = id => on(id) ? rowOf(BY[id], v(id)) : '';
+  function build(){
+    const L = [SALUTO_MG, TITOLO_MG];
+    const sez = (title, rows) => { rows = rows.filter(Boolean); if (rows.length) L.push('', ...(title ? [title] : []), ...rows.map(r => '• ' + r)); };
+    sez('', ['tot','sped','intest'].map(row));
+    sez('', [...['risaliti','bat'].map(row), ...(orig.xm || [])]);
+    sez('*Scoria*', [...['scM','scB'].map(row), ...(orig.xs || [])]);
+    sez('*Controllo qualità pacchi*', [...['q1','q2','q3','q4','q5'].map(row), ...(orig.xq || [])]);
+    return L.join('\n');
+  }
+
+  function show(f, x){
+    if (f.type === 'num' || f.type === 'line') return x || '—';
+    const r = rowOf(f, x);
+    return (f.type === 'cass' ? r : r.replace(/^[^:]+:\s*/, '')) || '—';
+  }
+  function render(){
+    const box = $('mg-groups'); box.innerHTML = '';
+    let grp = null, ul = null;
+    F.forEach(f => {
+      if (f.g !== grp) { grp = f.g; const g = el('div','group'); g.append(el('h3', null, grp)); ul = el('ul'); g.append(ul); box.append(g); }
+      const li = el('li');
+      const top = el('div','frow');
+      const t = el('span','t'); t.append(el('span','name', f.name)); top.append(t); li.append(top);
+      const ed = el('div','ed');
+      let tri = null;
+      const paint = () => { const off = excluded.has(f.id); li.classList.toggle('off', off); ed.hidden = off;
+        if (tri) { tri.dataset.st = off ? 'off' : 'keep'; tri.setAttribute('aria-label', f.name + (off ? ': tolto dal messaggio' : ': nel messaggio')); } };
+      if (f.type === 'line') {
+        tri = el('button','tri', '✕'); tri.type = 'button'; tri.id = 'mg-ck-' + f.id;
+        tri.onclick = () => { if (excluded.has(f.id)) excluded.delete(f.id); else excluded.add(f.id); paint(); update(); };
+        top.append(tri);
+      }
+      const cur = () => values[f.id] || (values[f.id] = {});
+      // tre tasti pieno / metà / vuoto; toccando quello acceso si spegne
+      const segSt = (key, label) => {
+        const r = el('div','fix'); if (label) r.append(el('span','pre', label));
+        const seg = el('div','seg st');
+        const shown = () => cur()[key] !== undefined ? cur()[key] : (orig[f.id] || {})[key];
+        const bs = STATES.map(k => { const b = el('button', null, k); b.type = 'button';
+          b.onclick = () => { cur()[key] = shown() === k ? '' : k; paint2(); update(); }; return b; });
+        const paint2 = () => bs.forEach((b, j) => b.setAttribute('aria-pressed', shown() === STATES[j]));
+        paint2(); seg.append(...bs); r.append(seg); return r;
+      };
+      const nBox = () => { const r = el('div','fix'); r.append(el('span','pre','N° cassoni'));
+        const n = el('input'); n.type = 'text'; n.inputMode = 'numeric'; n.className = 'n'; n.id = 'mg-in-' + f.id; n.placeholder = 'n°';
+        n.addEventListener('input', () => { cur().n = n.value.replace(/\D/g, ''); update(); }); r.append(n); return [r, n]; };
+      let focusEl;
+      if (f.type === 'num' || f.type === 'line') {
+        focusEl = f.type === 'line' ? el('textarea') : el('input'); focusEl.id = 'mg-in-' + f.id;
+        if (f.type === 'line') focusEl.rows = 2; else { focusEl.type = 'text'; focusEl.inputMode = 'numeric'; focusEl.className = 'n'; }
+        focusEl.value = values[f.id] || '';
+        focusEl.addEventListener('input', () => { values[f.id] = focusEl.value; update(); });
+        ed.append(focusEl);
+      } else if (f.type === 'cass' || f.type === 'cassS') {
+        const [r, n] = nBox(); focusEl = n; ed.append(r, segSt('s'));
+        if (f.type === 'cass') { const nt = el('input'); nt.type = 'text'; nt.id = 'mg-note-' + f.id; nt.placeholder = 'nota (es. appena cambiato)';
+          nt.value = (orig[f.id] || {}).note || ''; nt.addEventListener('input', () => { cur().note = nt.value; update(); }); ed.append(nt); }
+      } else {
+        const a = segSt('g', 'Cassone grande'), b = segSt('p', 'Cassone piccolo'); focusEl = a.querySelector('button'); ed.append(a, b);
+      }
+      paint(); li.append(ed); ul.append(li);
+    });
+  }
+  function update(){
+    setOut('mg', build());
+  }
+  function load(text){
+    const p = parse(text || ''); orig = p; checked = new Set(F.map(f => f.id)); values = {};
+    F.forEach(f => { if (f.type === 'line') values[f.id] = p[f.id]; });
+    excluded = new Set(text && text.trim() ? F.filter(f => f.type === 'line' && !p.found.has(f.id)).map(f => f.id) : []);
+    render(); update();
+  }
+  wireCopy('mg-out', 'mg-copy', 'mg-status');
+  load('');
+  return { update, parse, build };
+})();
+
+/* ---------- CONTROLLO LAMIERE ---------- */
+const LAM = (() => {
+  // Etichette del messaggio: da confermare con Luca (righe testa/coda). Cambiare solo qui.
+  const FMT = { titolo:'*Controllo lamiere*', lotto:'Lotto', testa:'Spessori testa:', coda:'Spessori coda:', lung:'Lunghezza:', larg:'Larghezza:' };
+  const SIZES = { testa:3, coda:3, lung:2, larg:2 };
+  const LABELS = { testa:'Spessori testa', coda:'Spessori coda', lung:'Lunghezze', larg:'Larghezze' };
+  const newLot = () => ({ num:'', testa:['','',''], coda:['','',''], lung:['',''], larg:['',''] });
+  let lots = [newLot()];
+
+  function parse(text){
+    const out = []; let cur = null, key = null;
+    for (const raw of clean(text).split('\n')) {
+      const l = raw.trim().replace(BUL, '').replace(/\*/g, '').trim(); if (!l) continue;
+      let m;
+      if ((m = l.match(/^lotto\s*:?\s*(\S*)/i))) { cur = newLot(); cur.num = m[1]; out.push(cur); key = null; continue; }
+      if (!cur) continue;
+      const lab = /testa/i.test(l) ? 'testa' : /coda/i.test(l) ? 'coda' : /lunghezz/i.test(l) ? 'lung' : /larghezz/i.test(l) ? 'larg' : null;
+      let nums;
+      if (lab) { key = lab; const rest = l.includes(':') ? l.slice(l.indexOf(':') + 1) : l.replace(/^[^\d]*/, ''); nums = rest.match(/\d+(?:[.,]\d+)?/g) || []; }
+      else if (key && /^[\d\s.,\-–]+$/.test(l)) nums = l.match(/\d+(?:[.,]\d+)?/g) || [];
+      else continue;
+      cur[key] = Array.from({ length:SIZES[key] }, (_, i) => nums[i] || '');
+    }
+    return out;
+  }
+  function build(){
+    const blocks = lots.map(L => {
+      const r = []; if (L.num.trim()) r.push(`${FMT.lotto} ${L.num.trim()}`);
+      for (const k of Object.keys(SIZES)) { const vals = L[k].map(x => x.trim()).filter(Boolean); if (vals.length) r.push(`${FMT[k]} ${vals.join(' ')}`); }
+      return r;
+    }).filter(r => r.length);
+    if (!blocks.length) return '';
+    return [FMT.titolo, ...blocks.flatMap((b, i) => i ? ['', ...b] : b)].join('\n');
+  }
+  function update(){ setOut('la', build()); }
+
+  function inp(arr, i, id){ const e = el('input'); e.type = 'text'; e.inputMode = 'decimal'; e.id = id; e.value = arr[i];
+    e.addEventListener('input', () => { arr[i] = e.value; update(); }); return e; }
+  function render(){
+    const box = $('la-lots'); box.innerHTML = '';
+    lots.forEach((L, n) => {
+      const g = el('div','group');
+      const bar = el('div','lotbar'); bar.append(el('h3', null, 'Lotto ' + (n + 1)));
+      if (lots.length > 1) { const rm = el('button', null, 'Togli'); rm.type = 'button'; rm.id = 'la-rm-' + n;
+        rm.onclick = () => { lots.splice(n, 1); render(); update(); }; bar.append(rm); }
+      g.append(bar);
+      const r0 = el('div','fix'); r0.append(el('span','pre','Numero lotto'));
+      const nb = el('input'); nb.type = 'text'; nb.inputMode = 'numeric'; nb.id = `la-num-${n}`; nb.value = L.num;
+      nb.addEventListener('input', () => { L.num = nb.value; update(); }); r0.append(nb); g.append(r0);
+      for (const k of Object.keys(SIZES)) {
+        const r = el('div','fix multi'); r.append(el('span','pre', LABELS[k]));
+        for (let i = 0; i < SIZES[k]; i++) r.append(inp(L[k], i, `la-${k}-${n}-${i}`));
+        g.append(r);
+      }
+      box.append(g);
+    });
+  }
+  function load(text){
+    const p = parse(text);
+    lots = p.length ? p : [newLot()];
+    render(); update();
+  }
+  $('la-add').onclick = () => { lots.push(newLot()); render(); update(); $(`la-num-${lots.length - 1}`).focus(); };
+  wireCopy('la-out', 'la-copy', 'la-status');
+  render(); update();
+  return { update, parse, build };
+})();
+
+/* ---------- avvio: sempre dalla home ---------- */
+if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+showView('home');
 </script>
