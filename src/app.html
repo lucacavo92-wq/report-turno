@@ -717,20 +717,22 @@ function arcZipFiles(list){
 }
 function arcExport(share){
   const list = arcRead(); if (!list.length) return;
-  const name = `Reportistica_archivio_${romeNow().iso.slice(0, 10)}.zip`;
+  const days = list.map(e => e.t.slice(0, 10)).sort();
+  const name = `report ${days[0]} ${days[days.length - 1]}.zip`;
   const blob = makeZip(arcZipFiles(list));
-  const download = () => {
+  const download = (avviso) => {
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.style.display = 'none';
     document.body.appendChild(a); a.click(); setTimeout(() => { a.remove(); URL.revokeObjectURL(a.href); }, 4000);
+    if (avviso) { const s = $('arc-status'); s.textContent = 'Il telefono non condivide lo zip: salvato nei Download. In WhatsApp: Allega > Documento e scegli il file.'; s.hidden = false; }
   };
   try {
     const f = new File([blob], name, { type:'application/zip' });
     if (share && navigator.share && navigator.canShare && navigator.canShare({ files:[f] })) {
-      navigator.share({ files:[f] }).catch(err => { if (!err || err.name !== 'AbortError') download(); });
+      navigator.share({ files:[f] }).catch(err => { if (!err || err.name !== 'AbortError') download(true); });
       return;
     }
   } catch(e) {}
-  download();
+  download(share);
 }
 
 /* ---------- pagina Archivio ---------- */
@@ -1038,7 +1040,22 @@ const LAM = (() => {
   function update(){ setOut('la', build()); if (typeof mem !== 'undefined') mem.save(); }
 
   function inp(arr, i, id){ const e = el('input'); e.type = 'text'; e.inputMode = 'decimal'; e.id = id; e.value = arr[i];
-    e.addEventListener('input', () => { arr[i] = e.value; update(); }); return e; }
+    e.addEventListener('input', () => { arr[i] = e.value; update(); });
+    e.addEventListener('change', () => { const r = calcola(e.value); if (r !== e.value) { e.value = r; arr[i] = r; update(); } });
+    return e; }
+  // Risolve operazioni semplici (+ - * / x : parentesi) quando si esce dalla casella; numeri semplici e testo non cambiano.
+  function calcola(s){
+    const t = s.trim();
+    if (!/[+\-*/x×:]/i.test(t.slice(1)) || !/^[\d\s.,+\-*/x×:()]+$/i.test(t)) return s;
+    const virg = t.includes(',');
+    const ex = t.replace(/,/g, '.').replace(/[x×]/gi, '*').replace(/:/g, '/');
+    try {
+      const v = Function('"use strict";return (' + ex + ')')();
+      if (typeof v !== 'number' || !isFinite(v)) return s;
+      const o = String(Math.round(v * 1000) / 1000);
+      return virg ? o.replace('.', ',') : o;
+    } catch (_) { return s; }
+  }
   function render(){
     const box = $('la-lots'); box.innerHTML = '';
     lots.forEach((L, n) => {

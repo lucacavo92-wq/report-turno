@@ -1,4 +1,4 @@
-# Prova automatica (stessa di prova.js, per Python + Playwright + Chromium).
+﻿# Prova automatica (stessa di prova.js, per Python + Playwright + Chromium).
 # Uso:  %LOCALAPPDATA%\Programs\Python\Python312\python.exe tools\prova.py
 # Apre l'app da un server locale (non file://), con l'ora del telefono finta (29/09/2026 22:40).
 import functools, http.server, pathlib, sys, threading
@@ -426,7 +426,7 @@ with sync_playwright() as pw:
     check(q.is_enabled('#arc-zip'), 'zip: tasto abilitato con archivio pieno')
     with q.expect_download() as dl: q.click('#arc-zip')
     d = dl.value; zp = os.path.join(tempfile.gettempdir(), 'prova_archivio.zip'); d.save_as(zp)
-    check(d.suggested_filename == 'Reportistica_archivio_2026-10-07.zip', 'zip: nome Reportistica_archivio_AAAA-MM-GG.zip (data di Roma)')
+    check(d.suggested_filename == 'report 2026-10-06 2026-12-01.zip', 'zip: nome report <data primo> <data ultimo>.zip')
     zf = zipfile.ZipFile(zp)
     check(zf.testzip() is None, 'zip: testzip OK (CRC di tutti i file corretti)')
     names = zf.namelist()
@@ -454,7 +454,7 @@ with sync_playwright() as pw:
         q.on('download', lambda d_: n_dl.append(d_)); q.click('#arc-open'); q.click('#arc-share'); q.wait_for_timeout(600)
         if nome == 'riuscito':
             sh = q.evaluate('window.__sh')
-            check(sh and len(sh) == 1 and sh[0].startswith('Reportistica_archivio_2026-10-06.zip:application/zip:'), 'condividi: navigator.share({files}) provato e e riceve il file zip')
+            check(sh and len(sh) == 1 and sh[0].startswith('report 2026-10-06 2026-12-01.zip:application/zip:'), 'condividi: navigator.share({files}) provato e e riceve il file zip')
         check(len(n_dl) == atteso, 'condividi: share ' + nome + ' -> ' + ('ricade sul download' if atteso else 'nessun download'))
         csh.close()
 
@@ -526,3 +526,5 @@ with sync_playwright() as pw:
     b.close()
 srv.shutdown()
 sys.exit(0 if ok else 1)
+
+
