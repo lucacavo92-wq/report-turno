@@ -32,7 +32,7 @@ textarea:focus-visible,input:focus-visible,button:focus-visible,a:focus-visible{
 button,.btn{font:600 14.5px/1.1 var(--f-body);border-radius:2px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:8px 12px;min-height:40px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-align:center}
 button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 
-.shiftRow{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.shiftRow{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .shiftRow button{font-family:var(--f-mono);font-weight:500;padding:6px 2px}
 .shiftRow button[aria-pressed="true"]{background:var(--steel);border-color:var(--steel);color:var(--panel)}
 .shiftRow input{grid-column:1/-1;font-family:var(--f-mono);min-width:0}
@@ -156,6 +156,7 @@ button:disabled,.tile:disabled{background:#161b21;color:#6d7783;border:1px dashe
       <div class="group"><h3>Turno e data</h3>
         <div class="shiftRow" id="shiftRow">
           <button type="button" data-i="0">6-14</button>
+          <button type="button" data-i="3">8-17</button>
           <button type="button" data-i="1">14-22</button>
           <button type="button" data-i="2">22-6</button>
           <input type="date" id="date" aria-label="Data">
@@ -212,11 +213,11 @@ button:disabled,.tile:disabled{background:#161b21;color:#6d7783;border:1px dashe
   <div class="view" id="v-arc" hidden>
     <section class="card" id="arc-list">
       <div class="warn" id="arc-warn" hidden><span id="arc-warn-t"></span>
-        <div class="bar"><button type="button" id="arc-w-zip">Salva file (zip)</button><button type="button" id="arc-w-share">Condividi archivio</button></div></div>
+        <div class="bar"><button type="button" id="arc-w-zip">Salva file (zip)</button><button type="button" id="arc-w-share">Condividi su WhatsApp</button></div></div>
       <div class="flt" id="arc-flt"></div>
       <div id="arc-items" class="view" style="gap:6px"></div>
       <p class="status" id="arc-empty" style="color:var(--muted)" hidden>Nessun messaggio salvato</p>
-      <button type="button" class="primary" id="arc-share" disabled>Condividi archivio</button>
+      <button type="button" class="primary" id="arc-share" disabled>Condividi su WhatsApp</button>
       <button type="button" id="arc-zip" disabled>Salva file (zip)</button>
       <button type="button" class="danger" id="arc-clear" disabled>Cancella archivio</button>
     </section>
@@ -409,12 +410,13 @@ function parse(text){
 }
 
 /* ---------- turno e data dall'ora del telefono ---------- */
-const SHIFTS = ['6-14','14-22','22-6'];
+const SHIFTS = ['6-14','14-22','22-6','8-17'];
 function autoShift(now){
   const h = now.getHours(), d = new Date(now);
   let s;
-  if (h >= 10 && h < 18) s = 0;                                               // intorno alle 14 → 6-14
-  else if (h >= 18 || h < 2) { s = 1; if (h < 2) d.setDate(d.getDate()-1); }  // intorno alle 22 → 14-22
+  if (h >= 10 && h < 16) s = 0;                                               // intorno alle 14 → 6-14
+  else if (h >= 16 && h < 19) s = 3;                                          // tra le 16 e le 19 → 8-17
+  else if (h >= 19 || h < 2) { s = 1; if (h < 2) d.setDate(d.getDate()-1); }  // intorno alle 22 → 14-22
   else s = 2;                                                                 // intorno alle 6 → 22-6, data della mattina
   return { s, d };
 }

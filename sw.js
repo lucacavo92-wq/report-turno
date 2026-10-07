@@ -1,5 +1,5 @@
 ﻿// Fa funzionare l'app anche senza rete: prima prova la rete (versione aggiornata), se non c'Ã¨ usa la copia salvata.
-const CACHE = 'report-turno-nuova-v14';
+const CACHE = 'report-turno-nuova-v15';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(k => Promise.all(k.filter(x => x !== CACHE).map(x => caches.delete(x))))); self.clients.claim(); });
