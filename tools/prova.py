@@ -77,7 +77,7 @@ with sync_playwright() as pw:
     sh = p.get_attribute('#share', 'href')
     import urllib.parse
     tx = urllib.parse.unquote(sh.split('text=', 1)[1]) if 'text=' in sh else ''
-    check(p.is_visible('#share') and sh.startswith('https://wa.me/?text=') and 'https://lucacavo92-wq.github.io/report-turno/' in tx and tx.startswith('*Reportistica FIL*') and 'Come si usa' not in tx and tx.endswith('arriveranno più avanti.'), 'home: tasto Condividi apre wa.me col testo (link del sito, senza "Come si usa")')
+    check(p.is_visible('#share') and sh.startswith('https://wa.me/?text=') and 'https://lucacavo92-wq.github.io/reportistica-fil/' in tx and tx.startswith('*Reportistica FIL*') and 'Come si usa' not in tx and tx.endswith('arriveranno più avanti.'), 'home: tasto Condividi apre wa.me col testo (link del sito, senza "Come si usa")')
 
     # ---- Report turno: campi visibili subito, niente casella di incolla ----
     p.click('[data-go=turno]'); p.wait_for_selector('#v-turno', state='visible')

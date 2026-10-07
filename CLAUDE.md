@@ -15,7 +15,7 @@ Ogni turno si manda sul gruppo WhatsApp "FIL A.S.Q" un report quasi sempre ugual
 - `src/app.html` — **il file da modificare**. È la pagina pubblicata su Claude (senza logo vero: quadrato "FIL").
 - `tools/build.py` — crea `index.html` da `src/app.html`: mette il logo `logo.svg`, manifest, icone e service worker.
   Dopo ogni modifica: `python3 tools/build.py`.
-- `index.html` — app installabile (PWA) per GitHub Pages: https://lucacavo92-wq.github.io/report-turno/
+- `index.html` — app installabile (PWA) per GitHub Pages: https://lucacavo92-wq.github.io/reportistica-fil/
 - `manifest.webmanifest`, `sw.js` (offline; prima prova la rete), `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, `logo.svg`.
   **Se cambi l'app, aumenta la versione `CACHE` in `sw.js`** (ora `report-turno-nuova-v2`).
 - `tools/prova.js` — prova automatica: `NODE_PATH=$(npm root -g) node tools/prova.js` (usa Chromium in /opt/pw-browsers).
@@ -70,7 +70,7 @@ nero con "L", lettere bianche strette. Il sito FIL è bloccato dalla rete di que
 
 ## Da fare / aperto
 - **GitHub Pages acceso il 30/09/2026** (repository reso pubblico, Pages da `main` / root), fatto da Claude con Chrome
-  sul computer di Luca. https://lucacavo92-wq.github.io/report-turno/ si apre ("Report Turno FIL"). Ogni push su `main`
+  sul computer di Luca. https://lucacavo92-wq.github.io/reportistica-fil/ si apre ("Report Turno FIL"). Ogni push su `main`
   aggiorna il sito in 1-2 minuti. Da spiegare a Luca sul telefono: Chrome → ⋮ → Installa app.
   **Deciso il 29/09/2026: progetti separati.** Niente sito di Enduro Crono: l'app resta nel suo repository.
 - Luca deve ancora provare bene **Copia** e **Apri in WhatsApp** sul telefono.
