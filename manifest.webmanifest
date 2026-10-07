@@ -2,7 +2,7 @@
   "name": "Reportistica FIL",
   "short_name": "Reportistica",
   "lang": "it",
-  "id": "report-turno-nuova",
+  "id": "reportistica-fil-2",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
