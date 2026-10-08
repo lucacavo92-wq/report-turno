@@ -113,9 +113,18 @@ body:not([data-view="turno"]) #heroSub{display:none}
 a.share,button.mini{min-height:34px;padding:4px 14px;font-size:13px;font-weight:400;color:var(--muted);background:linear-gradient(180deg,#2b3643 0%,#1d2631 100%);border-color:#44536a;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 3px rgba(0,0,0,.55)}
 .minirow{display:flex;justify-content:center;gap:10px;margin-top:18px;flex-wrap:wrap}
 .onl{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:13px;color:var(--muted);text-align:center}
-.onl.ok{color:var(--ok)}.onl.q{color:#f0a030}.onl.ko{color:var(--bad)}
+.onl>span{flex:0 0 100%}
+#onl-t.q{color:#f0a030}#onl-c.ok{color:var(--ok)}#onl-c.ko{color:var(--bad)}
 .onl button{min-height:30px;padding:2px 12px;font-size:13px}
-.onl-note{margin:4px 0 0;font-size:12.5px;color:var(--bad);text-align:center}
+#arc-upload{min-height:56px;font-size:18px}
+.warn .bar>button{flex:1 1 0}
+#up-msg{font-size:14px;line-height:1.35}
+#up-msg.ko{color:#f0a030}
+.dlg{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:16px}
+.dlg[hidden]{display:none}
+.dlgbox{background:#1d2631;border:1px solid #44536a;border-radius:4px;padding:16px;max-width:360px;width:100%;display:flex;flex-direction:column;gap:14px;box-shadow:0 6px 24px rgba(0,0,0,.7)}
+.dlgbox p{margin:0;font-size:16px;line-height:1.4;color:var(--ink)}
+.dlgbox .bar>button{flex:1 1 0;min-height:48px;font-size:15px}
 .lg{display:flex;flex-direction:column;gap:10px}
 .lg label{font-weight:600}
 .lg .pw{display:flex;gap:6px}
@@ -172,15 +181,15 @@ button:disabled,.tile:disabled{background:#161b21;color:#6d7783;border:1px dashe
     <div class="minirow"><button type="button" class="mini" id="arc-open"><span>Archivio</span><span class="badge" id="arc-badge" hidden></span></button>
       <a class="btn share" id="share" href="#" target="_blank" rel="noopener">&#10150; Condividi</a>
       <button type="button" class="mini" id="onl-exit" hidden>Esci</button></div>
-    <div class="onl" id="onl" role="status"><span id="onl-t"></span><button type="button" class="mini" id="onl-btn" hidden>Accedi</button></div>
-    <p class="onl-note" id="onl-note" role="status" hidden></p>
+    <div class="onl" id="onl" role="status"><span id="onl-t"></span><span id="onl-c"></span><button type="button" class="mini" id="onl-btn" hidden>Accedi</button></div>
   </div>
 
   <div class="view" id="v-login" hidden>
     <section class="card">
       <h2>Accedi</h2>
       <form class="lg" id="lg-form" autocomplete="on" novalidate>
-        <p class="hint">Serve per salvare i report online. Senza accedere l'app funziona lo stesso.</p>
+        <p class="err" id="lg-msg" role="status" hidden style="color:#f0a030"></p>
+        <p class="hint">Serve per caricare i report online. Senza accedere l'app funziona lo stesso.</p>
         <label for="lg-user">Nome utente</label>
         <input id="lg-user" name="username" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="es. l.cavo">
         <label for="lg-pass">Password</label>
@@ -257,12 +266,12 @@ button:disabled,.tile:disabled{background:#161b21;color:#6d7783;border:1px dashe
   <div class="view" id="v-arc" hidden>
     <section class="card" id="arc-list">
       <div class="warn" id="arc-warn" hidden><span id="arc-warn-t"></span>
-        <div class="bar"><button type="button" id="arc-w-zip">Salva file (zip)</button><button type="button" id="arc-w-share">Condividi su WhatsApp (TXT)</button></div></div>
+        <div class="bar"><button type="button" class="primary" id="arc-w-upload">Carica online</button></div></div>
       <div class="flt" id="arc-flt"></div>
       <div id="arc-items" class="view" style="gap:6px"></div>
       <p class="status" id="arc-empty" style="color:var(--muted)" hidden>Nessun messaggio salvato</p>
-      <button type="button" class="primary" id="arc-share" disabled>Condividi su WhatsApp (TXT)</button>
-      <button type="button" id="arc-zip" disabled>Salva file (zip)</button>
+      <p id="up-msg" role="status" hidden></p>
+      <button type="button" class="primary" id="arc-upload" disabled>Carica online</button>
       <button type="button" class="danger" id="arc-clear" disabled>Cancella archivio</button>
     </section>
     <section class="card" id="arc-det" hidden>
@@ -275,6 +284,13 @@ button:disabled,.tile:disabled{background:#161b21;color:#6d7783;border:1px dashe
       <p class="status" id="arc-status" role="status" hidden></p>
       <button type="button" class="azz" id="arc-del">Elimina</button>
     </section>
+  </div>
+
+  <div class="dlg" id="up-dlg" role="dialog" aria-modal="true" aria-labelledby="up-dlg-t" hidden>
+    <div class="dlgbox">
+      <p id="up-dlg-t">I report verranno caricati online e poi CANCELLATI da questo telefono. Continuare?</p>
+      <div class="bar"><button type="button" id="up-no">Annulla</button><button type="button" class="primary" id="up-yes">Carica e cancella</button></div>
+    </div>
   </div>
 </div>
 
@@ -723,82 +739,47 @@ function arcSave(tipo, text){
     if (!ARC_TIPI[tipo] || typeof text !== 'string' || !text.trim()) return;
     const list = arcRead(), n = romeNow();
     let i = -1; for (let k = list.length - 1; k >= 0; k--) if (list[k].r === tipo) { i = k; break; }
-    try { onlEnqueue(tipo, text, i >= 0 && list[i].x === text); } catch(e) {}   // invio online (stessa regola dei doppioni dell'archivio)
     if (i >= 0 && list[i].x === text) { const e = list.splice(i, 1)[0]; e.t = n.iso; e.l = n.txt; list.push(e); }
-    else list.push({ t:n.iso, l:n.txt, r:tipo, x:text.slice(0, 8000) });
+    else {
+      const v = { t:n.iso, l:n.txt, r:tipo, x:text.slice(0, 8000) };
+      if (tipo === 'turno') { v.s = SHIFTS[shift]; const dv = ($('date').value || '').trim(); v.d = /^\d{4}-\d\d-\d\d$/.test(dv) ? dv : n.iso.slice(0, 10); }   // per il caricamento online
+      list.push(v);
+    }
     arcWrite(list); arcBadge();
   } catch(e) {}
 }
 
-/* ---------- zip senza librerie (formato "stored", CRC32, nomi UTF-8) ---------- */
-const CRC_T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
-function crc32(u8){ let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC_T[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
-function makeZip(files){      // files: [{ name, data:Uint8Array, t:'AAAA-MM-GGTHH:MM:SS' }]
-  const enc = new TextEncoder(), parts = [], cen = [];
-  let off = 0;
-  const u16 = (v, n) => { v.push(n & 255, (n >>> 8) & 255); }, u32 = (v, n) => { v.push(n & 255, (n >>> 8) & 255, (n >>> 16) & 255, (n >>> 24) & 255); };
-  files.forEach(f => {
-    const nm = enc.encode(f.name), crc = crc32(f.data), m = /^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)/.exec(f.t || '');
-    const [Y, M, D, h, mi, se] = m ? m.slice(1).map(Number) : [1980, 1, 1, 0, 0, 0];
-    const dt = (Math.max(Y, 1980) - 1980) << 9 | M << 5 | D, tm = h << 11 | mi << 5 | (se >> 1);
-    const lh = [];
-    u32(lh, 0x04034b50); u16(lh, 20); u16(lh, 0x0800); u16(lh, 0); u16(lh, tm); u16(lh, dt); u32(lh, crc); u32(lh, f.data.length); u32(lh, f.data.length); u16(lh, nm.length); u16(lh, 0);
-    parts.push(new Uint8Array(lh), nm, f.data);
-    const ch = [];
-    u32(ch, 0x02014b50); u16(ch, 20); u16(ch, 20); u16(ch, 0x0800); u16(ch, 0); u16(ch, tm); u16(ch, dt); u32(ch, crc); u32(ch, f.data.length); u32(ch, f.data.length);
-    u16(ch, nm.length); u16(ch, 0); u16(ch, 0); u16(ch, 0); u16(ch, 0); u32(ch, 0); u32(ch, off);
-    cen.push(new Uint8Array(ch), nm);
-    off += lh.length + nm.length + f.data.length;
-  });
-  let cs = 0; cen.forEach(x => { cs += x.length; });
-  const end = []; u32(end, 0x06054b50); u16(end, 0); u16(end, 0); u16(end, files.length); u16(end, files.length); u32(end, cs); u32(end, off); u16(end, 0);
-  return new Blob([...parts, ...cen, new Uint8Array(end)], { type:'application/zip' });
-}
-function arcZipFiles(list){
-  const enc = new TextEncoder(), bom = [0xEF, 0xBB, 0xBF], used = new Set(), files = [], rows = ['data,ora,tipo,file'];
-  list.forEach(e => {
-    const base = `${e.t.slice(0, 10)}_${e.t.slice(11, 13)}-${e.t.slice(14, 16)}_${e.r}`; let nm = base + '.txt', k = 2;
-    while (used.has(nm)) nm = `${base}_${k++}.txt`;
-    used.add(nm);
-    files.push({ name:nm, t:e.t, data:new Uint8Array([...bom, ...enc.encode(e.x)]) });
-    rows.push([e.t.slice(0, 10), e.t.slice(11, 16), e.r, nm].join(','));
-  });
-  files.push({ name:'indice.csv', t:list.length ? list[list.length - 1].t : '', data:new Uint8Array([...bom, ...enc.encode(rows.join('\r\n') + '\r\n')]) });
-  return files;
-}
-function arcExport(share){
-  const list = arcRead(); if (!list.length) return;
-  const days = list.map(e => e.t.slice(0, 10)).sort();
-  const base = `report ${days[0]} ${days[days.length - 1]}`;
-  const enc = new TextEncoder();
-  // zip = un TXT per messaggio (solo salvataggio); TXT unico = per la condivisione (Chrome non condivide gli .zip)
-  const txt = list.map(e => `===== ${e.t.slice(0, 10)} ${e.t.slice(11, 16)} - ${e.r} =====\n${e.x}\n`).join('\n');
-  const blob = share ? new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), enc.encode(txt)], { type:'text/plain' }) : makeZip(arcZipFiles(list));
-  const name = base + (share ? '.txt' : '.zip');
-  const download = (avviso) => {
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.style.display = 'none';
-    document.body.appendChild(a); a.click(); setTimeout(() => { a.remove(); URL.revokeObjectURL(a.href); }, 4000);
-    if (avviso) { const s = $('arc-status'); s.textContent = 'Il telefono non condivide il file: salvato nei Download. In WhatsApp: Allega > Documento e scegli il file.'; s.hidden = false; }
-  };
-  if (share) {
-    try {
-      const f = new File([blob], name, { type:'text/plain' });
-      if (navigator.share && navigator.canShare && navigator.canShare({ files:[f] })) {
-        navigator.share({ files:[f] }).catch(err => { if (!err || err.name !== 'AbortError') download(true); });
-        return;
+/* ---------- dal messaggio dell'archivio ai dati da caricare online ---------- */
+function arcPayload(e){
+  const day = e.t.slice(0, 10), ora = e.t.slice(11, 13) + '-' + e.t.slice(14, 16);
+  if (e.r === 'turno') {
+    let sh = SHIFTS.includes(e.s) ? e.s : null, d = /^\d{4}-\d\d-\d\d$/.test(e.d || '') ? e.d : null;
+    if (!sh || !d) {   // voci vecchie senza turno/data salvati: si leggono dalla prima riga del messaggio
+      const m = /Report turno (\S+) del (\d\d)\/(\d\d)/.exec(e.x);
+      if (m) {
+        if (!sh && SHIFTS.includes(m[1])) sh = m[1];
+        if (!d) { let y = +day.slice(0, 4), c = `${y}-${m[3]}-${m[2]}`; if (c > day) c = `${y - 1}-${m[3]}-${m[2]}`; d = c; }
       }
-    } catch(e) {}
-    download(true); return;
+    }
+    if (!d) d = day;
+    return { kind:'turno', shift:sh, report_date:d, name:`Report turno ${sh ? sh + ' ' : ''}${d}`, body:e.x };
   }
-  download(false);
+  if (e.r === 'magazzino') return { kind:'magazzino', shift:null, report_date:null, name:`Controllo magazzino ${day} ${ora}`, body:e.x };
+  return { kind:'lamiere', shift:null, report_date:null, name:`Controllo lamiere ${day} ${ora}`, body:e.x };
 }
 /* ---------- pagina Archivio ---------- */
 let arcFilter = 'tutti', arcCur = null;
+let upBusy = false, upProg = '';      // caricamento online in corso (e testo di avanzamento)
+function upLabels(n){
+  const t = upBusy ? upProg : (n ? `Carica online (${n})` : 'Carica online');
+  ['arc-upload', 'arc-w-upload'].forEach(i => { $(i).textContent = t; $(i).disabled = upBusy || n === 0; });
+}
 function arcBadge(){
   try {
     const n = arcRead().length, b = $('arc-badge');
     b.hidden = n < ARC_AVVISO; b.textContent = `${n}/${ARC_MAX}`; b.classList.toggle('full', n >= ARC_MAX);
   } catch(e) {}
+  try { onlRender(); } catch(e) {}
 }
 function arcRender(){
   const all = arcRead(), list = all.filter(e => arcFilter === 'tutti' || e.r === arcFilter).reverse();
@@ -814,11 +795,12 @@ function arcRender(){
     b.onclick = () => arcOpen(e); box.append(b);
   });
   $('arc-empty').hidden = list.length > 0;
-  $('arc-zip').disabled = $('arc-share').disabled = $('arc-clear').disabled = all.length === 0;
+  $('arc-clear').disabled = all.length === 0 || upBusy;
+  upLabels(all.length);
   if (all.length === 0) window.arcClearReset();
   $('arc-flt').hidden = all.length === 0;
   const w = $('arc-warn'); w.hidden = all.length < ARC_AVVISO; w.classList.toggle('full', all.length >= ARC_MAX);
-  $('arc-warn-t').textContent = all.length >= ARC_MAX ? "Archivio pieno: i messaggi più vecchi vengono cancellati" : `Archivio quasi pieno: ${all.length}/${ARC_MAX}. Salva il file zip`;
+  $('arc-warn-t').textContent = all.length >= ARC_MAX ? "Archivio pieno: i messaggi più vecchi vengono cancellati" : `Archivio quasi pieno: ${all.length}/${ARC_MAX}. Carica online i report`;
   arcBadge();
 }
 function arcOpen(e){
@@ -830,10 +812,8 @@ function arcOpen(e){
 }
 function arcClose(){ arcCur = null; $('arc-det').hidden = true; $('arc-list').hidden = false; arcRender(); window.scrollTo(0, 0); }
 $('arc-open').onclick = () => { location.hash = 'arc'; };
-$('arc-zip').onclick = () => arcExport(false);
-$('arc-share').onclick = () => arcExport(true);
-$('arc-w-zip').onclick = () => arcExport(false);
-$('arc-w-share').onclick = () => arcExport(true);
+$('arc-upload').onclick = () => upStart();
+$('arc-w-upload').onclick = () => upStart();
 (() => {   // Cancella archivio: 3 tocchi (richiesta, conferma finale, cancella); se si aspetta torna com'era
   const b = $('arc-clear'), TXT = ['Cancella archivio', 'Sei sicuro? Cancella tutto', 'Confermi? Non si può annullare'];
   let st = 0, t = null;
@@ -863,7 +843,7 @@ function showView(n){
   $('hTitle').classList.toggle('long', n === 'mag' || n === 'lam');
   $('back').hidden = n === 'home';
   window.scrollTo(0, 0);
-  if (n === 'turno') update(); else if (n === 'mag') MG.update(); else if (n === 'lam') LAM.update(); else if (n === 'login') { window.loginReset && window.loginReset(); } else if (n === 'arc') { arcCur = null; $('arc-det').hidden = true; $('arc-list').hidden = false; arcRender(); }
+  if (n === 'turno') update(); else if (n === 'mag') MG.update(); else if (n === 'lam') LAM.update(); else if (n === 'login') { window.loginReset && window.loginReset(); } else if (n === 'arc') { if (!upBusy) upMsg(''); arcCur = null; $('arc-det').hidden = true; $('arc-list').hidden = false; arcRender(); }
 }
 document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => { location.hash = b.dataset.go; });
 $('back').onclick = () => { if (document.body.dataset.view === 'login' && window.loginEsci) { window.loginEsci(); return; } if (document.body.dataset.view === 'arc' && !$('arc-det').hidden) { arcClose(); return; } if (location.hash) history.back(); else showView('home'); };
@@ -1157,9 +1137,9 @@ const LAM = (() => {
   return { update, parse, build };
 })();
 
-/* ---------- ACCESSO e INVIO ONLINE dei report (solo fetch, nessuna libreria; mai bloccante) ---------- */
+/* ---------- ACCESSO e CARICAMENTO ONLINE dei report (solo fetch, nessuna libreria; mai bloccante) ---------- */
+// I report restano nell'archivio del telefono. Si caricano online SOLO quando Luca tocca "Carica online" (poi vengono cancellati dal telefono).
 const SES_KEY = 'reportistica.v1.sessione', CODA_KEY = 'reportistica.v1.coda', LOGINVISTO_KEY = 'reportistica.v1.loginvisto';
-const CODA_MAX = 200;
 const lsGet = k => { try { return localStorage.getItem(k); } catch(e) { return null; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); return true; } catch(e) { return false; } };
 const lsDel = k => { try { localStorage.removeItem(k); } catch(e) {} };
@@ -1175,31 +1155,32 @@ let SES = (() => {
 function sesSet(s){ SES = s; if (s) lsSet(SES_KEY, JSON.stringify({ v:1, u:s.u, at:s.at, rt:s.rt, exp:s.exp })); else lsDel(SES_KEY); }
 let authKo = false;       // il server ha rifiutato il token anche dopo il rinnovo: serve accedere di nuovo
 
-// coda dei report da inviare
 const KINDS = ['turno', 'magazzino', 'lamiere'];
-let CODA = (() => {
-  try { const o = JSON.parse(lsGet(CODA_KEY) || 'null'); if (!o || o.v !== 1 || !Array.isArray(o.d)) return [];
-    return o.d.filter(e => e && typeof e.id === 'string' && e.p && KINDS.includes(e.p.kind) && typeof e.p.name === 'string' && typeof e.p.body === 'string'
-      && (e.p.shift === null || typeof e.p.shift === 'string') && (e.p.report_date === null || typeof e.p.report_date === 'string')).slice(-CODA_MAX); } catch(e) { return []; }
-})();
-const codaSave = () => { if (CODA.length) lsSet(CODA_KEY, JSON.stringify({ v:1, d:CODA })); else lsDel(CODA_KEY); };
-const newId = () => { try { return crypto.randomUUID(); } catch(e) { return Date.now().toString(36) + Math.random().toString(36).slice(2); } };
-const ultimoInvio = {};   // anche se l'archivio non si puo' scrivere, lo stesso testo di fila non si accoda due volte
-
-function onlEnqueue(tipo, text, dupArchivio){
-  if (!KINDS.includes(tipo) || typeof text !== 'string' || !text.trim()) return;
-  if (dupArchivio || ultimoInvio[tipo] === text) { ultimoInvio[tipo] = text; return; }
-  ultimoInvio[tipo] = text;
-  const n = romeNow().iso, giorno = n.slice(0, 10), ora = n.slice(11, 13) + '-' + n.slice(14, 16);
-  let p;
-  if (tipo === 'turno') { const t = SHIFTS[shift], d = ($('date').value || '').trim() || giorno;
-    p = { kind:'turno', shift:t, report_date:d, name:`Report turno ${t} ${d}`, body:text }; }
-  else if (tipo === 'magazzino') p = { kind:'magazzino', shift:null, report_date:null, name:`Controllo magazzino ${giorno} ${ora}`, body:text };
-  else p = { kind:'lamiere', shift:null, report_date:null, name:`Controllo lamiere ${giorno} ${ora}`, body:text };
-  CODA.push({ id:newId(), p });
-  if (CODA.length > CODA_MAX) CODA = CODA.slice(-CODA_MAX);
-  codaSave(); onlNote(''); onlRender();
-  codaFlush();
+// Vecchia coda automatica (versione precedente dell'app): i report ancora in coda passano nell'archivio (se non ci sono gia') e la chiave si cancella.
+// Se non c'e' posto nell'archivio (max 200) o la memoria non si scrive, quelli che restano rimangono nella vecchia chiave e si riprova al prossimo avvio.
+function arcDaPayload(p){
+  const m = /^(?:Report turno \S+ |Controllo (?:magazzino|lamiere) )(\d{4}-\d\d-\d\d)(?: (\d\d)-(\d\d))?$/.exec(p.name || '');
+  const day = m ? m[1] : (/^\d{4}-\d\d-\d\d$/.test(p.report_date || '') ? p.report_date : romeNow().iso.slice(0, 10));
+  const hh = m && m[2] ? m[2] + ':' + m[3] : '';
+  const e = { t:`${day}T${hh || '00:00'}:00`, l:`${day.slice(8, 10)}/${day.slice(5, 7)}/${day.slice(0, 4)}${hh ? ' ' + hh : ''}`, r:p.kind, x:p.body.slice(0, 8000) };
+  if (p.kind === 'turno') { if (typeof p.shift === 'string') e.s = p.shift; if (/^\d{4}-\d\d-\d\d$/.test(p.report_date || '')) e.d = p.report_date; }
+  return e;
+}
+function codaMigra(){
+  try {
+    const raw = lsGet(CODA_KEY); if (!raw) return;
+    let o = null; try { o = JSON.parse(raw); } catch(e) {}
+    if (!o || o.v !== 1 || !Array.isArray(o.d)) return;                 // illeggibile: non si tocca
+    const q = o.d.filter(e => e && e.p && KINDS.includes(e.p.kind) && typeof e.p.body === 'string' && e.p.body.trim());
+    const arc = arcRead(), nuovi = [], avanzo = [];
+    q.forEach(e => {
+      if (arc.concat(nuovi).some(a => a.r === e.p.kind && a.x === e.p.body)) return;   // gia' nell'archivio
+      if (arc.length + nuovi.length >= ARC_MAX) { avanzo.push(e); return; }
+      nuovi.push(arcDaPayload(e.p));
+    });
+    if (nuovi.length && !arcWrite(nuovi.concat(arc))) return;           // memoria non scrivibile: la coda resta com'e'
+    if (avanzo.length) lsSet(CODA_KEY, JSON.stringify({ v:1, d:avanzo })); else lsDel(CODA_KEY);
+  } catch(e) {}
 }
 
 function sbFetch(path, opt){
@@ -1236,53 +1217,87 @@ function sbPost(p){
     body:JSON.stringify({ kind:p.kind, shift:p.shift, report_date:p.report_date, name:p.name, body:p.body }) });
 }
 
-let codaBusy = false;
-async function codaFlush(){
-  if (codaBusy || !SES || authKo || !CODA.length) { onlRender(); return; }
-  codaBusy = true; let rifiutati = 0, rinnovato = false;
-  try {
-    while (CODA.length && SES) {
-      const it = CODA[0]; let r;
-      try { r = await sbPost(it.p); } catch(e) { break; }                 // niente rete: resta in coda
-      if (r.status === 401) {
-        if (!rinnovato) { rinnovato = true; const k = await sbRefresh(); if (k === true) continue; if (k === 'rete') break; }
-        authKo = true; break;
-      }
-      if (r.ok || (r.status >= 400 && r.status < 500 && r.status !== 408 && r.status !== 429)) {
-        CODA = CODA.filter(x => x.id !== it.id); codaSave();
-        if (r.ok) authKo = false; else rifiutati++;
-        continue;
-      }
-      break;                                                              // 5xx, 408, 429: riprova piu' tardi
-    }
-  } catch(e) {}
-  codaBusy = false;
-  if (rifiutati) onlNote(rifiutati === 1 ? 'Un report è stato rifiutato dal server e non è stato salvato online' : rifiutati + ' report sono stati rifiutati dal server e non sono stati salvati online');
-  onlRender();
+/* tasto "Carica online" della pagina Archivio */
+let loginDaHome = false, loginMsg = '';   // loginDaHome: si e' arrivati alla schermata Accedi da un tasto (allora si torna indietro con la cronologia); loginMsg: avviso sopra il modulo
+function upMsg(m, tipo){ const n = $('up-msg'); n.textContent = m; n.hidden = !m; n.className = tipo || 'status'; }
+function upToglie(e){   // cancella dall'archivio SOLO questo report (dopo la conferma del server)
+  const l = arcRead(), i = l.findIndex(x => x.t === e.t && x.r === e.r && x.x === e.x);
+  if (i < 0) return true;
+  l.splice(i, 1);
+  if (!l.length) { try { localStorage.removeItem(ARC_KEY); return true; } catch(x) { return false; } }
+  return arcWrite(l);
 }
-setInterval(() => { if (CODA.length) codaFlush(); }, 60000);
-window.addEventListener('online', () => codaFlush());
-document.addEventListener('visibilitychange', () => { if (!document.hidden) codaFlush(); });
+function upStart(){
+  if (upBusy || !arcRead().length) return;
+  if (!SES || authKo) {
+    loginMsg = !SES ? 'Per caricare i report devi prima accedere.' : 'Accesso scaduto: accedi di nuovo per caricare i report.';
+    loginDaHome = true; location.hash = 'login'; return;
+  }
+  if (navigator.onLine === false) { upMsg("Niente connessione: riprova quando c'è rete. Non è stato cancellato nulla.", 'ko'); return; }
+  upMsg(''); $('up-dlg').hidden = false; $('up-no').focus();
+}
+async function upRun(){
+  if (upBusy) return;
+  upBusy = true;
+  let ok = 0, rifiutati = 0, motivo = '', rinnovato = false;
+  const lista = arcRead(), tot = lista.length;
+  upMsg(''); upProg = `Caricamento 1/${tot}...`; arcRender();
+  try {
+    for (let i = 0; i < lista.length; i++) {
+      const e = lista[i];
+      upProg = `Caricamento ${i + 1}/${tot}...`; upLabels(arcRead().length);
+      if (!SES) { motivo = 'accesso'; break; }
+      let r;
+      try { r = await sbPost(arcPayload(e)); } catch(x) { motivo = 'rete'; break; }   // niente rete: questo e i successivi restano sul telefono
+      if (r.status === 401) {
+        if (!rinnovato) { rinnovato = true; const k = await sbRefresh(); if (k === true) { i--; continue; } if (k === 'rete') { motivo = 'rete'; break; } }
+        authKo = true; motivo = 'accesso'; break;
+      }
+      if (r.ok) {
+        authKo = false;
+        if (!upToglie(e)) { motivo = 'memoria'; break; }
+        ok++; arcRender(); continue;
+      }
+      if (r.status >= 400 && r.status < 500 && r.status !== 408 && r.status !== 429) { rifiutati++; continue; }   // rifiutato: resta sul telefono, si va avanti
+      motivo = 'server'; break;                                                                                   // 5xx, 408, 429: ci si ferma
+    }
+  } catch(x) { motivo = motivo || 'rete'; }
+  upBusy = false; upProg = '';
+  const resta = arcRead().length;
+  const car = ok === 1 ? 'Caricato 1 report' : `Caricati ${ok} report`;
+  if (!motivo && !rifiutati) upMsg(ok === 1 ? 'Caricato 1 report e cancellato dal telefono.' : `Caricati ${ok} report e cancellati dal telefono.`, 'status');
+  else if (motivo === 'rete' && !ok && !rifiutati) upMsg("Niente connessione: riprova quando c'è rete. Non è stato cancellato nulla.", 'ko');
+  else {
+    const mot = [];
+    if (motivo === 'rete') mot.push('niente connessione');
+    else if (motivo === 'server') mot.push('il servizio non risponde, riprova tra poco');
+    else if (motivo === 'accesso') mot.push('accedi di nuovo');
+    else if (motivo === 'memoria') mot.push('non riesco a cancellarli dal telefono');
+    if (rifiutati) mot.push(rifiutati === 1 ? '1 report rifiutato dal server' : `${rifiutati} report rifiutati dal server`);
+    upMsg(`${ok ? car : 'Nessun report caricato'}. Restano sul telefono ${resta} report: ${mot.join('; ')}.`, 'ko');
+  }
+  arcRender(); onlRender();
+}
+$('up-no').onclick = () => { $('up-dlg').hidden = true; };
+$('up-yes').onclick = () => { $('up-dlg').hidden = true; upRun(); };
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && !$('up-dlg').hidden) $('up-dlg').hidden = true; });
 
 /* stato visibile in home */
-function onlNote(m){ const n = $('onl-note'); n.textContent = m; n.hidden = !m; }
 function onlRender(){
   try {
-    const box = $('onl'), t = $('onl-t'), b = $('onl-btn'), q = CODA.length;
-    box.className = 'onl';
-    if (!SES) { t.textContent = 'Non collegato: i report non vengono salvati online' + (q ? ` (${q} da inviare dopo l'accesso)` : ''); b.textContent = 'Accedi'; b.hidden = false; box.classList.add('ko'); }
-    else if (authKo) { t.textContent = `Accesso scaduto: ${q} report in coda`; b.textContent = 'Accedi di nuovo'; b.hidden = false; box.classList.add('ko'); }
-    else if (q) { t.textContent = `In coda: ${q} report da inviare`; b.hidden = true; box.classList.add('q'); }
-    else { t.textContent = 'Online: tutto salvato'; b.hidden = true; box.classList.add('ok'); }
+    const t = $('onl-t'), c = $('onl-c'), b = $('onl-btn'), n = arcRead().length;
+    t.textContent = n ? `Report sul telefono: ${n} (da caricare online)` : 'Nessun report da caricare'; t.className = n ? 'q' : '';
+    if (!SES) { c.textContent = 'Non collegato'; c.className = 'ko'; b.textContent = 'Accedi'; b.hidden = false; }
+    else if (authKo) { c.textContent = 'Accesso scaduto'; c.className = 'ko'; b.textContent = 'Accedi di nuovo'; b.hidden = false; }
+    else { c.textContent = `Collegato come ${SES.u}`; c.className = 'ok'; b.hidden = true; }
     const x = $('onl-exit'); x.hidden = !SES; if (SES && !x.dataset.conf) x.textContent = `Esci (${SES.u})`;
   } catch(e) {}
 }
-let loginDaHome = false;   // true se si e' arrivati alla schermata Accedi toccando il tasto (allora si torna indietro con la cronologia)
-$('onl-btn').onclick = () => { loginDaHome = true; location.hash = 'login'; };
-(() => {   // Esci: primo tocco chiede conferma, secondo tocco esce (la coda resta e parte dopo il prossimo accesso)
+$('onl-btn').onclick = () => { loginDaHome = true; loginMsg = ''; location.hash = 'login'; };
+(() => {   // Esci: primo tocco chiede conferma, secondo tocco esce (i report restano sul telefono)
   const b = $('onl-exit'); let t = null;
   b.onclick = () => {
-    if (t) { clearTimeout(t); t = null; delete b.dataset.conf; sesSet(null); authKo = false; onlNote(''); onlRender(); return; }
+    if (t) { clearTimeout(t); t = null; delete b.dataset.conf; sesSet(null); authKo = false; onlRender(); return; }
     b.dataset.conf = '1'; b.textContent = 'Confermi?';
     t = setTimeout(() => { t = null; delete b.dataset.conf; onlRender(); }, 3000);
   };
@@ -1305,12 +1320,13 @@ $('onl-btn').onclick = () => { loginDaHome = true; location.hash = 'login'; };
     busy = false; $('lg-go').disabled = false; $('lg-go').textContent = 'Accedi';
     if (!r.ok) { err(r.e === 'cred' ? 'Nome utente o password sbagliati' : r.e === 'rete' ? 'Niente connessione: riprova' : r.e === 'troppi' ? 'Troppi tentativi: aspetta un minuto e riprova' : 'Il servizio non risponde: riprova tra poco'); return; }
     $('lg-pass').value = ''; $('lg-pass').type = 'password'; $('lg-eye').textContent = 'Mostra';
-    onlRender(); esci(); codaFlush();
+    onlRender(); esci();
   });
-  window.loginReset = () => { err(''); $('lg-pass').value = ''; if (SES) $('lg-user').value = SES.u; };
+  window.loginReset = () => { err(''); $('lg-pass').value = ''; if (SES) $('lg-user').value = SES.u; $('lg-msg').textContent = loginMsg; $('lg-msg').hidden = !loginMsg; loginMsg = ''; };
 })();
+codaMigra();
+arcBadge();
 onlRender();
-codaFlush();
 // la prima volta in assoluto (mai vista la schermata) si propone l'accesso; se la memoria e' bloccata non si propone
 let primaVolta = false;
 try { if (!SES && !localStorage.getItem(LOGINVISTO_KEY) && localStorage.setItem(LOGINVISTO_KEY, '1') === undefined) primaVolta = true; } catch(e) {}

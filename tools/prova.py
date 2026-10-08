@@ -375,7 +375,7 @@ with sync_playwright() as pw:
     check([e['r'] for e in a] == ['turno', 'turno', 'turno', 'magazzino', 'lamiere'] and a[3]['x'] == tm and a[4]['x'] == tl, 'archivio: tipo giusto per Report turno, Controllo magazzino, Controllo lamiere (Copia e WhatsApp)')
     # pagina Archivio
     q.click('#back'); q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
-    check(q.text_content('#hTitle') == 'Archivio' and q.is_visible('#back') and q.is_visible('#arc-zip') and q.is_enabled('#arc-zip'), 'archivio: pagina con titolo, freccia indietro e tasto Salva file (zip)')
+    check(q.text_content('#hTitle') == 'Archivio' and q.is_visible('#back') and q.is_visible('#arc-upload') and q.is_enabled('#arc-upload'), 'archivio: pagina con titolo, freccia indietro e tasto Carica online')
     items = q.eval_on_selector_all('.arcitem', 'els => els.map(e => e.innerText)')
     check(len(items) == 5 and 'Lamiere' in items[0] and 'Magazzino' in items[1] and 'Turno' in items[2] and items[0].count('\n') >= 1, 'archivio: elenco dal piu recente con data/ora, tipo e prime righe')
     check('06/10/2026' in items[0] and '*' not in items[0], 'archivio: elenco con data e senza asterischi')
@@ -414,59 +414,8 @@ with sync_playwright() as pw:
     ca.close()
     # ---- archivio vuoto ----
     cb, q = nuovo(); q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
-    check(q.is_visible('#arc-empty') and q.inner_text('#arc-empty') == 'Nessun messaggio salvato' and q.is_disabled('#arc-zip') and q.locator('.arcitem').count() == 0, 'archivio vuoto: "Nessun messaggio salvato" e tasto zip disabilitato')
+    check(q.is_visible('#arc-empty') and q.inner_text('#arc-empty') == 'Nessun messaggio salvato' and q.is_disabled('#arc-upload') and q.locator('.arcitem').count() == 0, 'archivio vuoto: "Nessun messaggio salvato" e tasto Carica online disabilitato')
     cb.close()
-    # ---- zip: download ----
-    NOSHARE = "Object.defineProperty(navigator, 'share', { value: undefined, configurable: true });"
-    SEED = [('2026-10-06T14:05:30+02:00', 'turno', '*Report turno 6-14 del 06/10*\nProduzione 398 ton\nCassone: 2 (pieno, metà)'),
-            ('2026-10-06T14:05:50+02:00', 'turno', '*Report turno 6-14 del 06/10*\nProduzione 400 ton'),
-            ('2026-10-06T17:30:00+02:00', 'magazzino', 'Buongiorno,\n*Controllo magazzino*\n• Totale pacchi in magazzino: 21'),
-            ('2026-12-01T09:00:00+01:00', 'lamiere', '*Controllo lamiere*\nLotto 19223\nSpessori testa: 25.7 25.9 25.3')]
-    SEEDJS = "() => localStorage.setItem('reportistica.v1.archivio', JSON.stringify({v:1, d:%s.map(([t, r, x]) => ({t, l:'l', r, x}))}))" % json.dumps(SEED)
-    errs.clear()
-    cz, q = nuovo(UTC(2026, 10, 6, 22, 30), NOSHARE)      # 22:30 UTC = 00:30 del 07/10 a Roma
-    q.evaluate(SEEDJS); q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
-    check(q.is_enabled('#arc-zip'), 'zip: tasto abilitato con archivio pieno')
-    with q.expect_download() as dl: q.click('#arc-zip')
-    d = dl.value; zp = os.path.join(tempfile.gettempdir(), 'prova_archivio.zip'); d.save_as(zp)
-    check(d.suggested_filename == 'report 2026-10-06 2026-12-01.zip', 'zip: nome report <data primo> <data ultimo>.zip')
-    zf = zipfile.ZipFile(zp)
-    check(zf.testzip() is None, 'zip: testzip OK (CRC di tutti i file corretti)')
-    names = zf.namelist()
-    check(names == ['2026-10-06_14-05_turno.txt', '2026-10-06_14-05_turno_2.txt', '2026-10-06_17-30_magazzino.txt', '2026-12-01_09-00_lamiere.txt', 'indice.csv'], 'zip: un .txt per messaggio AAAA-MM-GG_HH-MM_tipo.txt (nome doppio -> _2) + indice.csv: ' + str(names))
-    ok_c = all(zf.read(n).startswith(b'\xef\xbb\xbf') and zf.read(n)[3:].decode('utf-8') == SEED[i][2] for i, n in enumerate(names[:4]))
-    check(ok_c, 'zip: contenuti uguali ai messaggi, UTF-8 con BOM')
-    check(all(i.compress_type == zipfile.ZIP_STORED and i.flag_bits & 0x800 for i in zf.infolist()), 'zip: formato stored, nomi UTF-8 (flag 0x0800)')
-    check(zf.getinfo(names[0]).date_time == (2026, 10, 6, 14, 5, 30) and zf.getinfo(names[3]).date_time == (2026, 12, 1, 9, 0, 0), 'zip: data/ora DOS dei file = ora del messaggio')
-    csv = zf.read('indice.csv'); cs = csv.decode('utf-8-sig')
-    check(csv.startswith(b'\xef\xbb\xbf') and cs.split('\r\n') == ['data,ora,tipo,file', '2026-10-06,14:05,turno,2026-10-06_14-05_turno.txt', '2026-10-06,14:05,turno,2026-10-06_14-05_turno_2.txt', '2026-10-06,17:30,magazzino,2026-10-06_17-30_magazzino.txt', '2026-12-01,09:00,lamiere,2026-12-01_09-00_lamiere.txt', ''], 'zip: indice.csv (data, ora, tipo, nome file)')
-    # test su 200 messaggi lunghi e accentati
-    q.evaluate("() => localStorage.setItem('reportistica.v1.archivio', JSON.stringify({v:1, d:Array.from({length:200}, (_, i) => ({t:'2026-10-06T10:'+String(i%60).padStart(2,'0')+':'+String(Math.floor(i/60)).padStart(2,'0')+'+02:00', l:'x', r:['turno','magazzino','lamiere'][i%3], x:'Voce '+i+' àèìòù €\\n'+'riga lunga '.repeat(50)}))}))")
-    q.click('#back'); q.click('#arc-open')
-    with q.expect_download() as dl: q.click('#arc-zip')
-    dl.value.save_as(zp); zf = zipfile.ZipFile(zp)
-    check(zf.testzip() is None and len(zf.namelist()) == 201 and zf.read(zf.namelist()[7])[3:].decode('utf-8').startswith('Voce 7 àèìòù €'), 'zip: 200 messaggi -> 201 file, testzip OK')
-    check(not errs, 'zip: nessun errore JS')
-    cz.close()
-    # share: usato per primo se disponibile
-    SHARE_OK = "navigator.canShare = () => true; navigator.share = d => { window.__sh = d.files.map(f => f.name + ':' + f.type + ':' + f.size); return Promise.resolve(); };"
-    SHARE_KO = "navigator.canShare = () => true; navigator.share = d => Promise.reject(new Error('non riuscito'));"
-    SHARE_AB = "navigator.canShare = () => true; navigator.share = d => Promise.reject(new DOMException('annullato', 'AbortError'));"
-    for nome, scr, atteso in [('riuscito', SHARE_OK, 0), ('fallito', SHARE_KO, 1), ('annullato', SHARE_AB, 0)]:
-        csh, q = nuovo(UTC(2026, 10, 6, 20, 40), scr); q.evaluate(SEEDJS); n_dl = []
-        q.on('download', lambda d_: n_dl.append(d_)); q.click('#arc-open'); q.click('#arc-share'); q.wait_for_timeout(600)
-        if nome == 'riuscito':
-            sh = q.evaluate('window.__sh')
-            check(sh and len(sh) == 1 and sh[0].startswith('report 2026-10-06 2026-12-01.txt:text/plain:'), 'condividi: navigator.share({files}) provato e riceve il file TXT unico')
-        check(len(n_dl) == atteso, 'condividi: share ' + nome + ' -> ' + ('ricade sul download' if atteso else 'nessun download'))
-        csh.close()
-
-    # ---- Zip: "Salva file" resta solo download anche se share esiste ----
-    errs.clear()
-    cs2, q = nuovo(UTC(2026, 10, 6, 20, 40), SHARE_OK); q.evaluate(SEEDJS); n_dl = []
-    q.on('download', lambda d_: n_dl.append(d_)); q.click('#arc-open'); q.click('#arc-zip'); q.wait_for_timeout(600)
-    check(len(n_dl) == 1 and not q.evaluate('window.__sh'), 'zip: "Salva file (zip)" scarica sempre (non usa la condivisione)')
-    cs2.close()
     # ---- avviso archivio quasi pieno (180/200) e archivio pieno ----
     def riempi(qq, n):
         qq.evaluate("n => localStorage.setItem('reportistica.v1.archivio', JSON.stringify({v:1, d:Array.from({length:n}, (_, i) => ({t:'2026-10-0'+(1+i%5)+'T10:'+String(i%60).padStart(2,'0')+':00+02:00', l:'x', r:'turno', x:'msg'+i}))}))", n)
@@ -481,9 +430,7 @@ with sync_playwright() as pw:
     q.click('#back')
     check(q.is_visible('#arc-badge') and q.inner_text('#arc-badge') == '180/200', 'avviso: al 180esimo messaggio compare il badge 180/200 sul tasto Archivio in home')
     q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
-    check(q.is_visible('#arc-warn') and q.inner_text('#arc-warn-t') == 'Archivio quasi pieno: 180/200. Salva il file zip' and q.is_visible('#arc-w-zip') and q.is_visible('#arc-w-share'), 'avviso: banner "Archivio quasi pieno: 180/200. Salva il file zip" con scorciatoie Salva/Condividi')
-    with q.expect_download() as dl: q.click('#arc-w-zip')
-    check(dl.value.suggested_filename.endswith('.zip'), 'avviso: scorciatoia Salva del banner scarica lo zip')
+    check(q.is_visible('#arc-warn') and q.inner_text('#arc-warn-t') == 'Archivio quasi pieno: 180/200. Carica online i report' and q.is_visible('#arc-w-upload'), 'avviso: banner "Archivio quasi pieno: 180/200. Carica online i report" con tasto Carica online')
     riempi(q, 200); q.click('#back'); q.click('[data-go=lam]'); q.fill('#la-testa-0-0', '25.2'); q.click('#la-copy'); q.click('#back')
     check(len(q.evaluate(AK)) == 200 and q.inner_text('#arc-badge') == '200/200' and 'full' in q.get_attribute('#arc-badge', 'class'), 'avviso: a 200 il badge e rosso (200/200), le voci restano 200')
     q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
@@ -498,7 +445,7 @@ with sync_playwright() as pw:
     q.wait_for_timeout(4400)
     check(q.inner_text('#arc-clear') == 'Cancella archivio' and len(q.evaluate(AK)) == 200, 'cancella: aspettando si torna indietro e non si cancella')
     q.click('#arc-clear'); q.click('#arc-clear'); q.click('#arc-clear'); q.wait_for_timeout(100)
-    check(q.evaluate("() => localStorage.getItem('reportistica.v1.archivio')") is None and q.is_visible('#arc-empty') and q.inner_text('#arc-empty') == 'Nessun messaggio salvato' and q.is_hidden('#arc-warn') and q.is_disabled('#arc-clear') and q.is_disabled('#arc-zip') and q.is_disabled('#arc-share'), 'cancella: al terzo tocco cancella tutto; pagina vuota, banner via, tasti disabilitati')
+    check(q.evaluate("() => localStorage.getItem('reportistica.v1.archivio')") is None and q.is_visible('#arc-empty') and q.inner_text('#arc-empty') == 'Nessun messaggio salvato' and q.is_hidden('#arc-warn') and q.is_disabled('#arc-clear') and q.is_disabled('#arc-upload'), 'cancella: al terzo tocco cancella tutto; pagina vuota, banner via, tasti disabilitati')
     q.click('#back')
     check(q.is_hidden('#arc-badge'), 'cancella: il badge in home sparisce')
     check(not errs, 'avviso/cancella: nessun errore JS')
@@ -507,7 +454,7 @@ with sync_playwright() as pw:
     for nome, val in [('testo non JSON', '{{{non json'), ('versione diversa', '{"v":99,"d":[]}'), ('d non lista', '{"v":1,"d":"abc"}'), ('voci sbagliate', '{"v":1,"d":[null,5,{"t":1},{"t":"2026-10-06T10:00:00+02:00","l":"x","r":"boh","x":"y"}]}')]:
         errs.clear()
         cc, q = nuovo(UTC(2026, 10, 6, 20, 40), "try{ if(!sessionStorage.getItem('g')){ localStorage.setItem('reportistica.v1.archivio', %r); sessionStorage.setItem('g','1'); } }catch(e){}" % val); q.evaluate(NOWA)
-        q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible'); vuoto = q.is_visible('#arc-empty') and q.is_disabled('#arc-zip')
+        q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible'); vuoto = q.is_visible('#arc-empty') and q.is_disabled('#arc-upload')
         q.click('#back'); q.click('[data-go=turno]'); q.fill('#in-prod', '5'); q.click('#copy'); q.wait_for_selector('#status', state='visible', timeout=3000)
         q.click('#back'); q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
         check(vuoto and q.locator('.arcitem').count() == 1 and not errs, 'archivio rovinato (' + nome + str((vuoto, q.locator('.arcitem').count(), errs)) + '): pagina vuota, poi Copia salva comunque, nessun errore JS')
@@ -517,7 +464,7 @@ with sync_playwright() as pw:
     q.evaluate(NOWA); q.click('[data-go=turno]'); q.fill('#in-prod', '9'); q.click('#copy'); q.wait_for_selector('#status', state='visible', timeout=3000)
     st_ok = q.inner_text('#status') in OKCOPIA
     q.click('#wa'); q.click('#back'); q.click('[data-go=mag]'); q.fill('#mg-in-tot', '1'); q.click('#mg-copy'); q.click('#mg-wa'); q.click('#back'); q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
-    check(st_ok and q.is_visible('#arc-empty') and q.is_disabled('#arc-zip') and not errs, 'archivio: localStorage bloccato -> Copia/WhatsApp funzionano, archivio vuoto, nessun errore JS')
+    check(st_ok and q.is_visible('#arc-empty') and q.is_disabled('#arc-upload') and not errs, 'archivio: localStorage bloccato -> Copia/WhatsApp funzionano, archivio vuoto, nessun errore JS')
     cl_.close()
     # archivio pieno (quota): Copia funziona lo stesso
     errs.clear()
@@ -556,12 +503,12 @@ with sync_playwright() as pw:
     check(not errs, 'piattine/virole: nessun errore JS')
     cm.close()
 
-    # ======================= ACCESSO e INVIO ONLINE (rete finta: nessuna chiamata vera) =======================
+    # ======================= ARCHIVIO sul telefono + CARICA ONLINE (rete finta: nessuna chiamata vera) =======================
     SBH = 'https://tzevatahoxxtkesyqssh.supabase.co'
     PUBKEY = 'sb_publishable_87KOPApbv0LGUPA8Tx2fBA_REqKz-ni'
     COLS = ['body', 'kind', 'name', 'report_date', 'shift']
     def finto():
-        return {'log': [], 'off': False, 'valid': set(), 'rt': 'RT1', 'refresh_ok': True, 'post_status': None, 'posted': []}
+        return {'log': [], 'off': False, 'valid': {'AT1'}, 'rt': 'RT1', 'refresh_ok': True, 'rule': None, 'posted': []}
     def sb_handler(st):
         def h(route, req):
             st['log'].append((req.method, req.url, dict(req.headers), req.post_data))
@@ -582,9 +529,11 @@ with sync_playwright() as pw:
                 else: js(400, {'error': 'invalid_grant'})
             elif u.endswith('/rest/v1/reports'):
                 tok = (req.headers.get('authorization') or '').replace('Bearer ', '')
-                if st['post_status']: js(st['post_status'], {'message': 'no'}); return
                 if tok not in st['valid'] or req.headers.get('apikey') != PUBKEY: js(401, {'message': 'JWT expired'}); return
-                st['posted'].append(json.loads(req.post_data)); route.fulfill(status=201, body='')
+                P = json.loads(req.post_data)
+                code = st['rule'](P) if st['rule'] else None
+                if code: js(code, {'message': 'no'}); return
+                st['posted'].append(P); route.fulfill(status=201, body='')
             else: route.fulfill(status=404, body='')
         return h
     def sb_nuovo(st, ora=UTC(2026, 10, 8, 10, 0), init=None, vp=None, lv=True):
@@ -593,116 +542,242 @@ with sync_playwright() as pw:
         if init: c.add_init_script(init)
         c.route(SBH + '/**', sb_handler(st))
         q = c.new_page(); q.on('pageerror', lambda e: errs.append(str(e)))
+        q.on('console', lambda m: CONS.append(m.text))
         q.clock.set_fixed_time(ora); q.goto(URL); q.wait_for_selector('#v-home', state='attached'); return c, q
-    onl = lambda: q.text_content('#onl-t')
-    attendi = lambda txt: q.wait_for_function("t => document.getElementById('onl-t').textContent.includes(t)", arg=txt, timeout=5000)
-    coda = lambda: q.evaluate("() => { const r = localStorage.getItem('reportistica.v1.coda'); return r ? JSON.parse(r).d : []; }")
+    CONS = []
+    def seed_js(entries=None, sess=True, coda=None, extra=''):
+        j = "if(!sessionStorage.getItem('g')){ try{ "
+        if entries is not None: j += "localStorage.setItem('reportistica.v1.archivio', %s);" % json.dumps(json.dumps({'v': 1, 'd': entries}))
+        if sess: j += "localStorage.setItem('reportistica.v1.sessione', JSON.stringify({v:1,u:'l.cavo',at:'AT1',rt:'RT1',exp:9999999999999}));"
+        if coda is not None: j += "localStorage.setItem('reportistica.v1.coda', %s);" % json.dumps(coda if isinstance(coda, str) else json.dumps(coda))
+        return j + " }catch(e){} sessionStorage.setItem('g','1'); } " + extra
+    X1 = '*Report turno 6-14 del 07/10*\nProduzione 398 ton'
+    X2 = '*Report turno 14-22 del 07/10*\nProduzione 1 ton'
+    X3 = 'Buongiorno,\n*Controllo magazzino*\n• Totale pacchi in magazzino: 21'
+    X4 = '*Controllo lamiere*\nLotto 19223\nSpessori testa: 25.7 25.9 25.3'
+    SEED4 = [{'t': '2026-10-07T14:05:00+02:00', 'l': '07/10/2026 14:05', 'r': 'turno', 's': '6-14', 'd': '2026-10-07', 'x': X1},
+             {'t': '2026-10-07T22:30:00+02:00', 'l': '07/10/2026 22:30', 'r': 'turno', 'x': X2},       # voce vecchia, senza turno/data salvati
+             {'t': '2026-10-08T09:15:00+02:00', 'l': '08/10/2026 09:15', 'r': 'magazzino', 'x': X3},
+             {'t': '2026-10-08T11:40:00+02:00', 'l': '08/10/2026 11:40', 'r': 'lamiere', 'x': X4}]
+    EXP4 = [{'kind': 'turno', 'shift': '6-14', 'report_date': '2026-10-07', 'name': 'Report turno 6-14 2026-10-07', 'body': X1},
+            {'kind': 'turno', 'shift': '14-22', 'report_date': '2026-10-07', 'name': 'Report turno 14-22 2026-10-07', 'body': X2},
+            {'kind': 'magazzino', 'shift': None, 'report_date': None, 'name': 'Controllo magazzino 2026-10-08 09-15', 'body': X3},
+            {'kind': 'lamiere', 'shift': None, 'report_date': None, 'name': 'Controllo lamiere 2026-10-08 11-40', 'body': X4}]
     SESS = "() => localStorage.getItem('reportistica.v1.sessione')"
-    def entra(user='l.cavo', pw='giusta'):
-        q.click('#onl-btn'); q.wait_for_selector('#v-login', state='visible')
-        q.fill('#lg-user', user); q.fill('#lg-pass', pw); q.click('#lg-go')
-    errs.clear()
-    st = finto(); cs, q = sb_nuovo(st); q.evaluate(NOWA)
-    check(q.is_visible('#v-home') and 'Non collegato: i report non vengono salvati online' in onl() and q.is_visible('#onl-btn') and q.text_content('#onl-btn') == 'Accedi' and not q.is_visible('#onl-exit'), 'online: non loggato -> home con riga "Non collegato" e tasto Accedi')
-    q.click('[data-go=turno]'); q.fill('#in-prod', '5'); q.click('#copy'); q.wait_for_selector('#status', state='visible', timeout=3000)
-    check(q.inner_text('#status') in OKCOPIA and len(coda()) == 1 and st['log'] == [], 'online: non loggato -> Copia funziona, 1 voce in coda, nessuna chiamata online')
-    q.click('#copy'); q.click('#wa')
-    check(len(coda()) == 1, "online: stesso testo copiato/WhatsApp piu' volte -> una sola voce (come l'archivio)")
-    q.click('#back')
-    check("1 da inviare dopo l'accesso" in onl(), 'online: la riga non collegato mostra le voci in coda')
-    entra('l.cavo', 'sbagliata')
-    q.wait_for_selector('#lg-err', state='visible', timeout=3000)
+    ARCN = "() => { const r = localStorage.getItem('reportistica.v1.archivio'); return r ? JSON.parse(r).d.length : 0; }"
+    CODAK = "() => localStorage.getItem('reportistica.v1.coda')"
+    def apri_arc(q):
+        q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
+    def carica(q, conferma=True):
+        q.click('#arc-upload'); q.wait_for_selector('#up-dlg', state='visible')
+        if conferma: q.click('#up-yes'); q.wait_for_function("() => !document.getElementById('arc-upload').textContent.startsWith('Caricamento')", timeout=8000)
+    msg = lambda q: q.inner_text('#up-msg')
+
+    # ---- Copia e WhatsApp: SOLO archivio sul telefono, nessuna chiamata online ----
+    errs.clear(); CONS.clear()
+    st = finto(); cs, q = sb_nuovo(st, init=seed_js(None, sess=False)); q.evaluate(NOWA)
+    check(q.is_visible('#v-home') and q.inner_text('#onl-t') == 'Nessun report da caricare' and q.inner_text('#onl-c') == 'Non collegato' and q.is_visible('#onl-btn') and q.text_content('#onl-btn') == 'Accedi' and not q.is_visible('#onl-exit'), 'home: archivio vuoto -> "Nessun report da caricare", "Non collegato" e tasto Accedi')
+    q.click('[data-go=turno]'); q.fill('#in-prod', '5'); q.click('#copy'); q.wait_for_selector('#status', state='visible', timeout=3000); q.click('#wa')
+    sel = q.evaluate("() => [document.querySelector('#shiftRow [aria-pressed=true]').textContent, document.getElementById('date').value]")
+    q.click('#back'); q.click('[data-go=mag]'); q.fill('#mg-in-tot', '21'); q.click('#mg-copy'); q.click('#mg-wa'); q.click('#back')
+    q.click('[data-go=lam]'); q.fill('#la-num-0', '19223'); q.click('#la-copy'); q.click('#la-wa'); q.click('#back')
+    q.evaluate("() => { window.dispatchEvent(new Event('online')); document.dispatchEvent(new Event('visibilitychange')); }"); q.wait_for_timeout(400)
+    arc = q.evaluate("() => JSON.parse(localStorage.getItem('reportistica.v1.archivio')).d")
+    check(len(arc) == 3 and [e['r'] for e in arc] == ['turno', 'magazzino', 'lamiere'], 'Copia / Apri in WhatsApp: i 3 report sono nell\'archivio del telefono')
+    check(st['log'] == [], 'Copia / Apri in WhatsApp: NESSUNA richiesta al server (0 richieste, nemmeno con evento online)')
+    check(arc[0]['s'] == sel[0] and arc[0]['d'] == sel[1], 'archivio: la voce del report turno ricorda turno e data ' + str((arc[0].get('s'), arc[0].get('d'))))
+    check(q.inner_text('#onl-t') == 'Report sul telefono: 3 (da caricare online)' and q.inner_text('#onl-c') == 'Non collegato', 'home: "Report sul telefono: 3 (da caricare online)" e "Non collegato"')
+    check(q.evaluate(CODAK) is None, 'nessuna coda automatica in localStorage')
+    cs.close()
+    # con accesso fatto: stessa cosa, e all'apertura niente invii
+    st = finto(); cs, q = sb_nuovo(st, init=seed_js([SEED4[0]])); q.evaluate(NOWA)
+    q.click('[data-go=lam]'); q.fill('#la-num-0', '7'); q.click('#la-copy'); q.click('#la-wa'); q.click('#back'); q.wait_for_timeout(300)
+    check(st['log'] == [] and q.evaluate(ARCN) == 2, 'con accesso: apertura, Copia e WhatsApp non fanno richieste; report nell\'archivio')
+    check(q.inner_text('#onl-c') == 'Collegato come l.cavo' and not q.is_visible('#onl-btn') and q.text_content('#onl-exit') == 'Esci (l.cavo)' and q.inner_text('#onl-t') == 'Report sul telefono: 2 (da caricare online)', 'home con accesso: "Collegato come l.cavo", tasto Esci (l.cavo), 2 report sul telefono')
+    q.click('#onl-exit'); check(q.text_content('#onl-exit') == 'Confermi?' and q.evaluate(SESS) is not None, 'esci: primo tocco chiede conferma')
+    q.click('#onl-exit'); q.wait_for_timeout(100)
+    check(q.evaluate(SESS) is None and q.inner_text('#onl-c') == 'Non collegato' and not q.is_visible('#onl-exit') and q.evaluate(ARCN) == 2, 'esci: secondo tocco -> sessione tolta, "Non collegato", i report restano')
+    cs.close()
+
+    # ---- niente tasti vecchi, niente testi su zip / TXT ----
+    st = finto(); cs, q = sb_nuovo(st, init=seed_js(SEED4)); apri_arc(q)
+    check(all(q.locator(i).count() == 0 for i in ['#arc-share', '#arc-zip', '#arc-w-share', '#arc-w-zip']), 'archivio: i tasti Condividi (TXT), Salva file (zip) e quelli dell\'avviso non esistono piu')
+    tx = q.evaluate("() => { const c = document.body.cloneNode(true); c.querySelectorAll('script').forEach(s => s.remove()); return c.textContent.toLowerCase(); }")
+    check('zip' not in tx and 'salva file' not in tx and 'whatsapp (txt)' not in tx and 'in coda' not in tx, 'nessun testo dell\'app cita zip / Salva file / WhatsApp (TXT) / In coda')
+    check(q.inner_text('#arc-upload') == 'Carica online (4)' and q.is_enabled('#arc-upload') and 'primary' in q.get_attribute('#arc-upload', 'class'), 'archivio: tasto grande "Carica online (4)" abilitato')
+    # ---- avviso: Annulla non invia e non cancella (nessun confirm() del browser) ----
+    dlg = []; q.on('dialog', lambda d_: (dlg.append(d_.message), d_.dismiss()))
+    q.click('#arc-upload'); q.wait_for_selector('#up-dlg', state='visible')
+    check(q.inner_text('#up-dlg-t') == 'I report verranno caricati online e poi CANCELLATI da questo telefono. Continuare?' and q.inner_text('#up-no') == 'Annulla' and q.inner_text('#up-yes') == 'Carica e cancella', 'avviso: finestra nell\'app con testo e tasti Annulla / Carica e cancella')
+    check(st['log'] == [], 'avviso: prima della conferma nessuna richiesta')
+    q.click('#up-no'); q.wait_for_timeout(300)
+    check(q.is_hidden('#up-dlg') and st['log'] == [] and q.evaluate(ARCN) == 4 and not dlg, 'avviso: Annulla -> non invia, non cancella, nessun confirm() del browser')
+    cs.close()
+
+    # ---- senza accesso: Carica online porta ad Accedi, dopo l'accesso torna all'Archivio ----
+    errs.clear(); CONS.clear()
+    st = finto(); cs, q = sb_nuovo(st, init=seed_js(SEED4, sess=False)); apri_arc(q)
+    q.click('#arc-upload'); q.wait_for_selector('#v-login', state='visible', timeout=3000)
+    check(q.is_visible('#lg-msg') and 'accedere' in q.inner_text('#lg-msg') and st['log'] == [] and q.is_hidden('#up-dlg'), 'senza accesso: Carica online porta alla schermata Accedi con un messaggio, nessuna richiesta')
+    q.fill('#lg-user', 'l.cavo'); q.fill('#lg-pass', 'sbagliata'); q.click('#lg-go'); q.wait_for_selector('#lg-err', state='visible', timeout=3000)
     check(q.inner_text('#lg-err') == 'Nome utente o password sbagliati' and q.is_visible('#v-login') and q.evaluate(SESS) is None and q.get_attribute('#lg-pass', 'type') == 'password', 'accesso: password sbagliata -> messaggio chiaro, resta sulla schermata, niente sessione')
     q.click('#lg-eye'); check(q.get_attribute('#lg-pass', 'type') == 'text', 'accesso: occhio mostra la password'); q.click('#lg-eye')
     lg = [x for x in st['log'] if 'grant_type=password' in x[1]][0]
     check(lg[0] == 'POST' and lg[2].get('apikey') == PUBKEY and json.loads(lg[3]) == {'email': 'l.cavo@reportistica-fil.it', 'password': 'sbagliata'} and 'sbagliata' not in lg[1], "accesso: chiamata giusta (apikey, email con dominio aggiunto, password nel corpo e non nell'URL)")
     q.fill('#lg-user', ' L.Cavo '); q.fill('#lg-pass', 'giusta'); q.click('#lg-go')
-    q.wait_for_selector('#v-home', state='visible', timeout=5000); attendi('Online: tutto salvato')
+    q.wait_for_selector('#v-arc', state='visible', timeout=5000)
     ses = json.loads(q.evaluate(SESS))
-    check(ses['u'] == 'l.cavo' and ses['at'] == 'AT1' and ses['rt'] == 'RT1', 'accesso: sessione salvata (nome, token)')
-    check(len(st['posted']) == 1 and coda() == [] and q.is_visible('#onl-exit') and q.text_content('#onl-exit') == 'Esci (l.cavo)' and not q.is_visible('#onl-btn'), 'accesso ok: parte la coda, "Online: tutto salvato", tasto Esci (l.cavo)')
-    P = st['posted'][0]; rq = [x for x in st['log'] if x[1].endswith('/rest/v1/reports')][-1]
-    sel = q.evaluate("() => [document.querySelector('#shiftRow [aria-pressed=true]').textContent, document.getElementById('date').value]")
-    check(sorted(P) == COLS and P['kind'] == 'turno' and P['shift'] == sel[0] and P['report_date'] == sel[1] and P['name'] == f'Report turno {sel[0]} {sel[1]}' and 'Produzione 5 ton' in P['body'], 'invio turno: solo le 5 colonne, kind/shift/report_date/name giusti ' + str(P)[:150])
-    check(rq[2].get('apikey') == PUBKEY and rq[2].get('authorization') == 'Bearer AT1' and rq[2].get('prefer') == 'return=minimal' and 'AT1' not in rq[1], "invio: intestazioni giuste (apikey, Bearer, return=minimal), token non nell'URL")
-    q.click('[data-go=mag]'); q.fill('#mg-in-tot', '21'); q.click('#mg-copy'); q.click('#back'); attendi('Online: tutto salvato')
-    q.click('[data-go=lam]'); q.fill('#la-num-0', '19223'); q.click('#la-copy'); q.click('#back'); attendi('Online: tutto salvato'); q.wait_for_timeout(300)
-    M, Lm = st['posted'][1], st['posted'][2]
-    check(sorted(M) == COLS and M['kind'] == 'magazzino' and M['shift'] is None and M['report_date'] is None and M['name'] == 'Controllo magazzino 2026-10-08 12-00' and 'Totale pacchi in magazzino: 21' in M['body'], 'invio magazzino: payload e nome giusti ' + str(M)[:150])
-    check(sorted(Lm) == COLS and Lm['kind'] == 'lamiere' and Lm['shift'] is None and Lm['report_date'] is None and Lm['name'] == 'Controllo lamiere 2026-10-08 12-00' and 'Lotto 19223' in Lm['body'], 'invio lamiere: payload e nome giusti ' + str(Lm)[:150])
-    check(len(st['posted']) == 3, 'invio: un solo invio per ogni Copia (nessun doppione)')
-    # 401 -> rinnovo -> riprova
-    st['valid'].clear(); n0 = len(st['posted'])
-    q.click('[data-go=mag]'); q.fill('#mg-in-sped', '7'); q.click('#mg-copy'); q.click('#back'); attendi('Online: tutto salvato')
-    sess2 = json.loads(q.evaluate(SESS))
-    check(len(st['posted']) == n0 + 1 and sess2['at'] == 'AT2' and sess2['rt'] == 'RT2' and any('grant_type=refresh_token' in x[1] for x in st['log']), '401: rinnovo del token una volta e poi riprova (inviato, nuova sessione salvata)')
-    # rete assente -> resta in coda -> evento online -> si svuota
-    st['off'] = True; n0 = len(st['posted'])
-    q.click('[data-go=lam]'); q.fill('#la-num-0', '19224'); q.click('#la-copy'); q.click('#back'); q.wait_for_timeout(300)
-    check(len(coda()) == 1 and 'In coda: 1 report da inviare' in onl() and len(st['posted']) == n0 and not q.is_visible('#onl-btn'), 'rete assente: il report resta in coda, riga "In coda: 1 report da inviare"')
-    st['off'] = False; q.evaluate("() => window.dispatchEvent(new Event('online'))"); attendi('Online: tutto salvato')
-    check(coda() == [] and len(st['posted']) == n0 + 1 and st['posted'][-1]['kind'] == 'lamiere', 'torna la rete (evento online): la coda si svuota in ordine')
-    # dato rifiutato (422): scartato dalla coda, segnalato
-    st['post_status'] = 422; n0 = len(st['posted'])
-    q.click('[data-go=mag]'); q.fill('#mg-in-intest', '3'); q.click('#mg-copy'); q.click('#back'); q.wait_for_selector('#onl-note', state='visible', timeout=5000)
-    check(coda() == [] and len(st['posted']) == n0 and 'rifiutato' in q.text_content('#onl-note'), 'errore 422: voce scartata dalla coda e segnalata')
-    st['post_status'] = None
-    # 401 che resta -> in coda, "Accedi di nuovo"
-    st['valid'].clear(); st['refresh_ok'] = False; n0 = len(st['posted'])
-    q.click('[data-go=mag]'); q.fill('#mg-in-intest', '4'); q.click('#mg-copy'); q.click('#back'); attendi('Accesso scaduto')
-    check(len(coda()) == 1 and q.text_content('#onl-btn') == 'Accedi di nuovo' and q.is_visible('#onl-btn') and len(st['posted']) == n0, '401 che resta: report in coda, riga "Accesso scaduto" e tasto "Accedi di nuovo"')
-    st['refresh_ok'] = True; entra(); q.wait_for_selector('#v-home', state='visible', timeout=5000); attendi('Online: tutto salvato')
-    check(coda() == [] and len(st['posted']) == n0 + 1, 'accedi di nuovo: la coda parte')
-    # Esci: doppio tocco
-    q.click('#onl-exit'); check(q.text_content('#onl-exit') == 'Confermi?' and q.evaluate(SESS) is not None, 'esci: primo tocco chiede conferma')
-    q.click('#onl-exit'); q.wait_for_timeout(100)
-    check(q.evaluate(SESS) is None and 'Non collegato' in onl() and not q.is_visible('#onl-exit'), 'esci: secondo tocco -> sessione tolta, "Non collegato"')
-    q.click('[data-go=mag]'); q.fill('#mg-in-intest', '9'); q.click('#mg-copy'); q.click('#back'); q.wait_for_timeout(300)
-    check(len(coda()) == 1, "dopo Esci: l'app si usa lo stesso, il report va in coda")
-    check(not errs, 'online: nessun errore JS')
+    check(ses['u'] == 'l.cavo' and ses['at'] == 'AT1' and q.is_visible('#arc-list') and q.evaluate(ARCN) == 4 and st['posted'] == [], 'dopo l\'accesso si torna all\'Archivio; sessione salvata; nulla caricato in automatico')
+    check(not any(w in ' '.join(CONS) for w in ['giusta', 'AT1', 'RT1', 'sbagliata']), 'nessuna password / token nella console')
     cs.close()
-    # all'apertura, con sessione salvata e coda: parte da sola
-    sess_js = "try{localStorage.setItem('reportistica.v1.sessione', JSON.stringify({v:1,u:'l.cavo',at:'AT1',rt:'RT1',exp:9999999999999}));localStorage.setItem('reportistica.v1.coda', JSON.stringify({v:1,d:[{id:'a1',p:{kind:'lamiere',shift:null,report_date:null,name:'Controllo lamiere 2026-10-07 09-00',body:'*Controllo lamiere*\\nLotto 1'}}]}))}catch(e){}"
-    st2 = finto(); st2['valid'] = {'AT1'}
-    c2, q = sb_nuovo(st2, init="if(!sessionStorage.getItem('g')){ " + sess_js + " sessionStorage.setItem('g','1'); }")
-    attendi('Online: tutto salvato')
-    check(len(st2['posted']) == 1 and st2['posted'][0]['name'] == 'Controllo lamiere 2026-10-07 09-00' and not q.is_visible('#v-login'), 'apertura app con sessione e coda: la coda parte da sola, nessuna schermata di accesso')
-    c2.close()
+
+    # ---- senza rete: messaggio chiaro, niente cancellato ----
+    st = finto(); st['off'] = True; cs, q = sb_nuovo(st, init=seed_js(SEED4)); apri_arc(q)
+    carica(q)
+    check("Niente connessione: riprova quando c'è rete" in msg(q) and q.evaluate(ARCN) == 4 and q.is_enabled('#arc-upload') and q.inner_text('#arc-upload') == 'Carica online (4)', 'senza rete: "Niente connessione: riprova quando c\'è rete", nulla cancellato, tasto di nuovo attivo')
+    cs.close()
+    st = finto(); cs, q = sb_nuovo(st, init=seed_js(SEED4, extra="Object.defineProperty(navigator, 'onLine', { get(){ return false; }, configurable: true });")); apri_arc(q)
+    q.click('#arc-upload'); q.wait_for_timeout(300)
+    check("Niente connessione" in msg(q) and q.is_hidden('#up-dlg') and st['log'] == [] and q.evaluate(ARCN) == 4, 'telefono senza rete (navigator.onLine=false): messaggio, nessuna richiesta, nulla cancellato')
+    cs.close()
+
+    # ---- tutto a buon fine ----
+    errs.clear(); CONS.clear()
+    st = finto(); cs, q = sb_nuovo(st, init=seed_js(SEED4)); apri_arc(q)
+    q.evaluate("() => { window.__lab = []; new MutationObserver(() => window.__lab.push(document.getElementById('arc-upload').textContent)).observe(document.getElementById('arc-upload'), { childList:true, characterData:true, subtree:true }); }")
+    carica(q)
+    lab = q.evaluate('window.__lab')
+    check(st['posted'] == EXP4 and all(sorted(p_) == COLS for p_ in st['posted']), 'carica tutto: dal piu vecchio, 4 payload esatti (5 colonne: turno, turno vecchio senza dati salvati, magazzino, lamiere) ' + str(st['posted'])[:200])
+    rq = [x for x in st['log'] if x[1].endswith('/rest/v1/reports')]
+    check(len(rq) == 4 and all(x[2].get('apikey') == PUBKEY and x[2].get('authorization') == 'Bearer AT1' and x[2].get('prefer') == 'return=minimal' and 'AT1' not in x[1] for x in rq), "carica: intestazioni giuste (apikey, Bearer, return=minimal), token non nell'URL")
+    check(q.evaluate("() => localStorage.getItem('reportistica.v1.archivio')") is None and q.evaluate(ARCN) == 0, 'carica tutto: archivio vuoto alla fine')
+    check(msg(q) == 'Caricati 4 report e cancellati dal telefono.' and q.is_visible('#arc-empty') and q.is_disabled('#arc-upload') and q.inner_text('#arc-upload') == 'Carica online', 'carica tutto: messaggio finale, tasto disabilitato con archivio vuoto')
+    check('Caricamento 1/4...' in lab and 'Caricamento 4/4...' in lab, 'carica: indicatore "Caricamento 1/4..." fino a "4/4..." ' + str(lab))
+    q.click('#back'); check(q.inner_text('#onl-t') == 'Nessun report da caricare' and q.is_hidden('#arc-badge'), 'home dopo il caricamento: "Nessun report da caricare"')
+    check(not errs, 'carica: nessun errore JS'); cs.close()
+
+    # ---- errore 5xx al secondo: il primo cancellato, gli altri restano; poi si riprende senza doppioni ----
+    st = finto(); st['rule'] = lambda P: 503 if P['name'] == EXP4[1]['name'] else None
+    cs, q = sb_nuovo(st, init=seed_js(SEED4)); apri_arc(q); carica(q)
+    left = q.evaluate("() => JSON.parse(localStorage.getItem('reportistica.v1.archivio')).d.map(e => e.r)")
+    check(st['posted'] == [EXP4[0]] and left == ['turno', 'magazzino', 'lamiere'] and 'Caricato 1 report' in msg(q) and 'Restano sul telefono 3 report' in msg(q), 'errore 5xx al secondo: primo caricato e cancellato, gli altri 3 restano; messaggio con "Restano sul telefono 3 report": ' + msg(q))
+    st['rule'] = None; carica(q)
+    check(st['posted'] == EXP4 and q.evaluate(ARCN) == 0 and msg(q) == 'Caricati 3 report e cancellati dal telefono.', 'dopo il 5xx, riprovando: i 3 rimasti caricati, nessun doppione (4 totali)')
+    cs.close()
+    for codice in (429, 408):
+        st = finto(); st['rule'] = lambda P, c=codice: c if P['name'] == EXP4[2]['name'] else None
+        cs, q = sb_nuovo(st, init=seed_js(SEED4)); apri_arc(q); carica(q)
+        check(len(st['posted']) == 2 and q.evaluate(ARCN) == 2, f'errore {codice}: ci si ferma, quel report e i successivi restano')
+        cs.close()
+
+    # ---- 401 poi rinnovo ok ----
+    st = finto(); st['valid'] = set()
+    cs, q = sb_nuovo(st, init=seed_js(SEED4)); apri_arc(q); carica(q)
+    ref = [x for x in st['log'] if 'grant_type=refresh_token' in x[1]]
+    sess2 = json.loads(q.evaluate(SESS))
+    check(len(ref) == 1 and st['posted'] == EXP4 and sess2['at'] == 'AT2' and sess2['rt'] == 'RT2' and q.evaluate(ARCN) == 0, '401: un solo rinnovo del token, poi tutti i report caricati, nuova sessione salvata')
+    cs.close()
+    # ---- 401 che resta ----
+    st = finto(); st['valid'] = set(); st['refresh_ok'] = False
+    cs, q = sb_nuovo(st, init=seed_js(SEED4)); apri_arc(q); carica(q)
+    ref = [x for x in st['log'] if 'grant_type=refresh_token' in x[1]]
+    check(len(ref) == 1 and st['posted'] == [] and q.evaluate(ARCN) == 4 and 'accedi di nuovo' in msg(q) and 'Restano sul telefono 4 report' in msg(q), '401 che resta: un solo tentativo di rinnovo, niente cancellato, messaggio "accedi di nuovo": ' + msg(q))
+    q.click('#back'); check(q.inner_text('#onl-c') == 'Accesso scaduto' and q.text_content('#onl-btn') == 'Accedi di nuovo' and q.is_visible('#onl-btn'), 'home dopo 401: "Accesso scaduto" e tasto "Accedi di nuovo"')
+    apri_arc(q); q.click('#arc-upload'); q.wait_for_selector('#v-login', state='visible', timeout=3000)
+    check('accedi di nuovo' in q.inner_text('#lg-msg'), 'Carica online con accesso scaduto: porta alla schermata Accedi con messaggio')
+    st['refresh_ok'] = True; q.fill('#lg-user', 'l.cavo'); q.fill('#lg-pass', 'giusta'); q.click('#lg-go'); q.wait_for_selector('#v-arc', state='visible', timeout=5000)
+    carica(q)
+    check(st['posted'] == EXP4 and q.evaluate(ARCN) == 0, 'dopo aver rifatto l\'accesso: il caricamento riesce')
+    cs.close()
+
+    # ---- 400: quel report resta e viene segnalato, gli altri partono ----
+    st = finto(); st['rule'] = lambda P: 400 if P['name'] == EXP4[1]['name'] else None
+    cs, q = sb_nuovo(st, init=seed_js(SEED4)); apri_arc(q); carica(q)
+    left = q.evaluate("() => JSON.parse(localStorage.getItem('reportistica.v1.archivio')).d")
+    check(st['posted'] == [EXP4[0], EXP4[2], EXP4[3]] and len(left) == 1 and left[0]['x'] == X2, 'errore 400: il report rifiutato resta sul telefono, gli altri 3 caricati e cancellati')
+    check('Caricati 3 report' in msg(q) and 'Restano sul telefono 1 report' in msg(q) and 'rifiutato' in msg(q), 'errore 400: messaggio con "rifiutato" e "Restano sul telefono 1 report": ' + msg(q))
+    cs.close()
+
+    # ---- doppio tocco: nessun doppio invio ----
+    st = finto(); cs, q = sb_nuovo(st, init=seed_js(SEED4)); apri_arc(q)
+    q.evaluate("() => { document.getElementById('arc-upload').click(); document.getElementById('arc-upload').click(); }")
+    q.wait_for_selector('#up-dlg', state='visible')
+    q.evaluate("() => { const y = document.getElementById('up-yes'); y.click(); y.click(); document.getElementById('arc-upload').click(); document.getElementById('arc-w-upload').click(); }")
+    q.wait_for_function("() => !document.getElementById('arc-upload').textContent.startsWith('Caricamento')", timeout=8000); q.wait_for_timeout(300)
+    check(st['posted'] == EXP4 and len([x for x in st['log'] if x[1].endswith('/rest/v1/reports')]) == 4 and q.is_hidden('#up-dlg'), 'doppio tocco: 4 invii in tutto, nessun duplicato, nessuna seconda finestra')
+    cs.close()
+
+    # ---- vecchia coda automatica: passa nell'archivio, la chiave si cancella ----
+    errs.clear()
+    cq_ = [{'id': 'a1', 'p': {'kind': 'lamiere', 'shift': None, 'report_date': None, 'name': 'Controllo lamiere 2026-10-07 09-00', 'body': '*Controllo lamiere*\nLotto 1'}},
+           {'id': 'a2', 'p': {'kind': 'turno', 'shift': '22-6', 'report_date': '2026-10-06', 'name': 'Report turno 22-6 2026-10-06', 'body': X1}},
+           {'id': 'a3', 'p': {'kind': 'turno', 'shift': '6-14', 'report_date': '2026-10-07', 'name': 'Report turno 6-14 2026-10-07', 'body': X1}}]    # a3 e' gia' nell'archivio (X1)
+    st = finto(); cs, q = sb_nuovo(st, init=seed_js([SEED4[0]], coda={'v': 1, 'd': cq_}))
+    a = q.evaluate("() => JSON.parse(localStorage.getItem('reportistica.v1.archivio')).d")
+    check(q.evaluate(CODAK) is None and len(a) == 2 and a[1]['x'] == X1 and a[0]['r'] == 'lamiere' and a[0]['x'].endswith('Lotto 1') and st['log'] == [], 'vecchia coda: i report non presenti passano nell\'archivio (quelli gia presenti non si duplicano), chiave coda cancellata, nessuna richiesta ' + str([(e['r'], e['t']) for e in a]))
+    q.reload(); q.wait_for_selector('#v-home', state='visible'); check(q.evaluate(ARCN) == 2, 'vecchia coda: al riavvio non si duplica')
+    cs.close()
+    st = finto(); cs, q = sb_nuovo(st, init=seed_js(None, coda='{{{non json'))
+    check(q.evaluate(CODAK) == '{{{non json' and not errs, 'vecchia coda illeggibile: lasciata dov\'e, nessun errore JS')
+    cs.close()
+
+    # ---- testo dei report mostrato come testo (niente HTML) ----
+    st = finto(); xs = [{'t': '2026-10-08T09:15:00+02:00', 'l': '08/10/2026 09:15', 'r': 'magazzino', 'x': '<img src=x onerror="window.__xss=1">\n<b>grassetto</b>'}]
+    cs, q = sb_nuovo(st, init=seed_js(xs)); apri_arc(q); q.wait_for_timeout(300)
+    check(q.evaluate('window.__xss') is None and '<img' in q.inner_text('.arcitem') and q.locator('.arcitem b').count() == 1, 'sicurezza: il testo del report nell\'elenco e solo testo (nessun HTML eseguito)')
+    cs.close()
+
+    # ---- avviso 180/200 con il tasto Carica online ----
+    errs.clear()
+    cw, q = nuovo(UTC(2026, 10, 6, 20, 40)); q.evaluate(NOWA)
+    riempi(q, 180); q.reload(); q.wait_for_selector('#v-home', state='visible'); apri_arc(q)
+    check(q.is_visible('#arc-warn') and q.inner_text('#arc-warn-t') == 'Archivio quasi pieno: 180/200. Carica online i report' and q.inner_text('#arc-w-upload').startswith('Carica online') and q.is_visible('#arc-w-upload'), 'avviso 180/200: testo "Archivio quasi pieno: 180/200. Carica online i report" con tasto Carica online')
+    q.click('#arc-w-upload'); q.wait_for_selector('#v-login', state='visible', timeout=3000)
+    check(q.is_visible('#lg-msg'), 'avviso 180/200: il tasto fa la stessa cosa di Carica online (senza accesso -> Accedi)')
+    q.click('#lg-skip'); q.wait_for_selector('#v-arc', state='visible', timeout=3000)
+    cw.close()
+    cw2, q = nuovo(UTC(2026, 10, 6, 20, 40), "if(!sessionStorage.getItem('g')){ try{ localStorage.setItem('reportistica.v1.sessione', JSON.stringify({v:1,u:'l.cavo',at:'AT1',rt:'RT1',exp:9999999999999})); }catch(e){} sessionStorage.setItem('g','1'); }")
+    riempi(q, 180); q.reload(); q.wait_for_selector('#v-home', state='visible'); apri_arc(q)
+    q.click('#arc-w-upload'); q.wait_for_selector('#up-dlg', state='visible', timeout=3000)
+    check(q.inner_text('#up-yes') == 'Carica e cancella', 'avviso 180/200: con accesso il tasto apre la stessa finestra di conferma')
+    cw2.close()
+
+    # ---- localStorage bloccato: nessun errore JS, app usabile, accesso in memoria ----
+    errs.clear()
+    BLK = "Object.defineProperty(window, 'localStorage', { get(){ throw new Error('bloccato'); } });"
+    st = finto(); c4, q = sb_nuovo(st, init=BLK, lv=False); q.evaluate(NOWA)
+    check(q.is_visible('#v-home') and q.inner_text('#onl-c') == 'Non collegato' and q.inner_text('#onl-t') == 'Nessun report da caricare', 'localStorage bloccato: home normale, "Non collegato", nessuna schermata Accedi da sola')
+    q.click('[data-go=lam]'); q.fill('#la-num-0', '5'); q.click('#la-copy'); q.click('#back')
+    q.click('#onl-btn'); q.fill('#lg-user', 'l.cavo'); q.fill('#lg-pass', 'giusta'); q.click('#lg-go'); q.wait_for_selector('#v-home', state='visible', timeout=5000)
+    apri_arc(q)
+    check(q.is_disabled('#arc-upload') and st['posted'] == [] and not errs, 'localStorage bloccato: accesso in memoria funziona, Archivio vuoto (tasto disabilitato), nessuna richiesta, nessun errore JS')
+    c4.close()
     # prima volta in assoluto: la schermata Accedi si propone, una volta sola
     errs.clear()
     st3 = finto(); c3_, q = sb_nuovo(st3, lv=False)
     check(q.is_visible('#v-login') and q.is_visible('#lg-skip'), 'prima apertura: compare la schermata Accedi')
     q.click('#lg-skip'); q.wait_for_selector('#v-home', state='visible', timeout=3000)
-    check(q.is_visible('#v-home') and 'Non collegato' in onl(), 'prima apertura: "Continua senza accedere" porta alla home, app usabile')
+    check(q.is_visible('#v-home') and q.inner_text('#onl-c') == 'Non collegato', 'prima apertura: "Continua senza accedere" porta alla home, app usabile')
     q.reload(); q.wait_for_selector('#v-home', state='visible')
     check(not q.is_visible('#v-login') and not errs, 'seconda apertura: la schermata Accedi non si ripropone da sola')
     c3_.close()
-    # localStorage bloccato: nessun errore JS, app usabile, accesso e invio funzionano in memoria
-    errs.clear()
-    BLK = "Object.defineProperty(window, 'localStorage', { get(){ throw new Error('bloccato'); } });"
-    st4 = finto(); c4, q = sb_nuovo(st4, init=BLK, lv=False); q.evaluate(NOWA)
-    check(q.is_visible('#v-home') and 'Non collegato' in onl(), 'localStorage bloccato: home normale, "Non collegato", nessuna schermata Accedi da sola')
-    q.click('[data-go=lam]'); q.fill('#la-num-0', '5'); q.click('#la-copy'); q.click('#back')
-    q.click('#onl-btn'); q.fill('#lg-user', 'l.cavo'); q.fill('#lg-pass', 'giusta'); q.click('#lg-go'); q.wait_for_selector('#v-home', state='visible', timeout=5000); attendi('Online: tutto salvato')
-    check(len(st4['posted']) == 1 and not errs, 'localStorage bloccato: accesso e invio funzionano in memoria, nessun errore JS')
-    c4.close()
-    # schermate 390px per Luca
+
+    # ---- schermate 390px per Luca ----
     errs.clear()
     anteprime = R.parent / 'anteprime'; anteprime.mkdir(exist_ok=True)
-    st5 = finto(); c5, q = sb_nuovo(st5, vp={'width': 390, 'height': 844}); q.evaluate(NOWA)
-    q.screenshot(path=str(anteprime / 'online_1_home_non_collegato.png'))
-    q.click('#onl-btn'); q.wait_for_selector('#v-login', state='visible'); q.fill('#lg-user', 'l.cavo'); q.screenshot(path=str(anteprime / 'online_2_accedi.png'))
-    q.fill('#lg-pass', 'giusta'); q.click('#lg-go'); q.wait_for_selector('#v-home', state='visible', timeout=5000); attendi('Online: tutto salvato')
-    q.screenshot(path=str(anteprime / 'online_3_home_collegato.png'))
-    st5['off'] = True; q.click('[data-go=mag]'); q.fill('#mg-in-bat', '3'); q.fill('#mg-in-piattine', '4'); q.fill('#mg-in-virole', '5')
-    q.click('#mg-copy'); q.wait_for_timeout(300); q.evaluate("() => window.scrollTo(0, document.getElementById('mg-groups').offsetTop + 380)")
-    q.screenshot(path=str(anteprime / 'online_4_magazzino_piattine_virole.png'))
-    q.click('#back'); q.screenshot(path=str(anteprime / 'online_5_home_in_coda.png'))
-    check(not errs and (anteprime / 'online_4_magazzino_piattine_virole.png').exists(), 'anteprime 390px salvate in Report_Turni\\anteprime')
+    SEED5 = SEED4 + [{'t': '2026-10-08T12:20:00+02:00', 'l': '08/10/2026 12:20', 'r': 'magazzino', 'x': X3 + '\n• 5 virole'}]
+    st5 = finto(); st5['rule'] = lambda P: 503 if P['body'].endswith('• 5 virole') else None
+    c5, q = sb_nuovo(st5, vp={'width': 390, 'height': 844}, init=seed_js(SEED5)); q.evaluate(NOWA)
+    q.screenshot(path=str(anteprime / 'carica_1_home_con_stato.png'))
+    apri_arc(q); q.screenshot(path=str(anteprime / 'carica_2_archivio_con_tasto.png'))
+    q.click('#arc-upload'); q.wait_for_selector('#up-dlg', state='visible'); q.screenshot(path=str(anteprime / 'carica_3_avviso_cancellazione.png'))
+    q.click('#up-yes'); q.wait_for_function("() => !document.getElementById('arc-upload').textContent.startsWith('Caricamento')", timeout=8000)
+    q.screenshot(path=str(anteprime / 'carica_4_messaggio_restano.png'))
+    st5['rule'] = None; carica(q); q.screenshot(path=str(anteprime / 'carica_5_messaggio_finale.png'))
+    q.click('#back'); q.screenshot(path=str(anteprime / 'carica_6_home_dopo.png'))
+    check(not errs and (anteprime / 'carica_5_messaggio_finale.png').exists(), 'anteprime 390px salvate in Report_Turni\\anteprime (carica_*.png)')
     c5.close()
 
     b.close()
 srv.shutdown()
 sys.exit(0 if ok else 1)
-
-
