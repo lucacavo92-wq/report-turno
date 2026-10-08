@@ -60,7 +60,9 @@ def check(c, m):
 
 with sync_playwright() as pw:
     b = pw.chromium.launch()
-    p = b.new_page(viewport={'width': 400, 'height': 900})
+    LV = "try{localStorage.setItem('reportistica.v1.loginvisto','1')}catch(e){}"   # le prove vecchie: la schermata Accedi non si propone da sola
+    p0 = b.new_context(viewport={'width': 400, 'height': 900}); p0.add_init_script(LV)
+    p = p0.new_page()
     p.on('pageerror', lambda e: check(False, 'errore JS: ' + str(e)))
     p.clock.set_fixed_time(datetime(2026, 9, 29, 22, 40))
     p.goto(URL)
@@ -147,7 +149,7 @@ with sync_playwright() as pw:
     check(all(p.is_visible('#mg-in-' + i) for i in ['risaliti', 'montalbetti', 'nostro']) and p.locator('#mg-in-risaliti').evaluate("e => e.closest('.group').querySelector('h3').textContent") == 'Cassoni', 'magazzino: 3 cassoni fissi sempre visibili (Risaliti, Montalbetti, Nostro)')
     check(p.locator('#mg-in-risaliti').evaluate("e => e.closest('li').querySelector('label.name').textContent") == 'Cassone Risaliti' and p.locator('#mg-in-nostro').evaluate("e => e.closest('li').querySelector('label.name').textContent") == 'Cassone Nostro', 'magazzino: nomi Cassone Risaliti / Cassone Nostro')
     cbs = p.eval_on_selector_all('#mg-groups input.cb', 'els => els.map(e => e.checked)')
-    check(len(cbs) == 14 and all(cbs), 'magazzino: 14 caselle (una per campo), tutte attive di partenza')
+    check(len(cbs) == 16 and all(cbs), 'magazzino: 16 caselle (una per campo), tutte attive di partenza')
     check(p.locator('#mg-in-bat').count() == 1 and p.locator('#mg-in-bat').evaluate("e => e.closest('.group').querySelector('h3').textContent") == 'Bat', 'magazzino: bat è un campo suo, separato dai cassoni')
     p.fill('#mg-in-bat', '3')
     check('• 3 bat' in out('#mg-out').split(chr(10)) and 'cassone' not in out('#mg-out'), 'magazzino: bat da solo -> riga "• 3 bat", nessun cassone')
@@ -234,9 +236,10 @@ with sync_playwright() as pw:
 
     # ---- Memoria delle ultime impostazioni (localStorage, stesso contesto, ricarico la pagina) ----
     errs = []
-    LS = "() => Object.keys(localStorage).filter(k => k.startsWith('reportistica.')).sort()"
+    LS = "() => Object.keys(localStorage).filter(k => k.startsWith('reportistica.') && k !== 'reportistica.v1.loginvisto').sort()"
     def nuovo(ora=datetime(2026, 9, 29, 22, 40), init=None):
         c = b.new_context(viewport={'width': 400, 'height': 900})
+        c.add_init_script(LV)
         if init: c.add_init_script(init)
         q = c.new_page(); q.on('pageerror', lambda e: errs.append(str(e)))
         q.clock.set_fixed_time(ora); q.goto(URL); return c, q
@@ -522,6 +525,181 @@ with sync_playwright() as pw:
     q.click('[data-go=turno]'); q.fill('#in-prod', '9'); q.click('#copy'); q.wait_for_selector('#status', state='visible', timeout=3000)
     check(q.inner_text('#status') in OKCOPIA and not errs, 'archivio: memoria piena -> Copia funziona lo stesso, nessun errore')
     cq.close()
+
+    # ======================= PIATTINE e VIROLE (come Bat) =======================
+    errs.clear()
+    cm, q = nuovo(UTC(2026, 10, 8, 10, 0)); q.evaluate(NOWA)
+    q.click('[data-go=mag]'); q.wait_for_selector('#v-mag', state='visible')
+    mo = lambda: q.eval_on_selector('#mg-out', 'e => e.value').split(chr(10))
+    ATTR = "e => [e.tagName, e.type, e.inputMode, e.className, e.closest('.group').querySelector('h3').textContent, e.closest('li').querySelectorAll('input').length, e.closest('li').querySelector('label.name').textContent]"
+    ab, ap, av = [q.locator('#mg-in-' + i).evaluate(ATTR) for i in ['bat', 'piattine', 'virole']]
+    check(ab[:4] == ap[:4] == av[:4] and ab[5] == ap[5] == av[5] and ap[4] == 'Piattine' and av[4] == 'Virole' and ap[6] == 'Piattine (numero)' and av[6] == 'Virole (numero)', 'piattine/virole: stesso tipo di campo, layout e casella di Bat ' + str((ab, ap, av)))
+    keys = q.eval_on_selector_all('#mg-groups input.cb', 'els => els.map(e => e.id)')
+    check(keys.index('mg-ck-bat') + 1 == keys.index('mg-ck-piattine') and keys.index('mg-ck-piattine') + 1 == keys.index('mg-ck-virole'), "piattine/virole: nell'ordine Bat, Piattine, Virole")
+    q.fill('#mg-in-bat', '3'); q.fill('#mg-in-piattine', '4'); q.fill('#mg-in-virole', '5')
+    L = mo()
+    check(L.count('• 3 bat') == 1 and L.count('• 4 piattine') == 1 and L.count('• 5 virole') == 1 and L.index('• 3 bat') + 1 == L.index('• 4 piattine') and L.index('• 4 piattine') + 1 == L.index('• 5 virole'), 'piattine/virole: compaiono nel messaggio dopo Bat ' + str(L))
+    q.click('#mg-ck-piattine')
+    check('• 4 piattine' not in mo() and '• 5 virole' in mo() and not q.is_visible('#mg-in-piattine'), 'piattine: casella spenta toglie la riga (virole resta)')
+    q.click('#mg-ck-virole')
+    check('• 5 virole' not in mo() and '• 3 bat' in mo(), 'virole: casella spenta toglie la riga')
+    q.click('#mg-ck-piattine'); q.click('#mg-ck-virole')
+    check('• 4 piattine' in mo() and '• 5 virole' in mo(), 'piattine/virole: caselle riaccese -> righe di nuovo')
+    q.click('#mg-ck-virole')
+    q.wait_for_timeout(500); q.reload(); q.wait_for_selector('#v-home', state='visible')
+    q.click('[data-go=mag]'); q.wait_for_selector('#v-mag', state='visible')
+    check(q.input_value('#mg-in-piattine') == '4' and q.input_value('#mg-in-virole') == '5' and q.input_value('#mg-in-bat') == '3' and not q.is_checked('#mg-ck-virole') and q.is_checked('#mg-ck-piattine') and '• 4 piattine' in mo() and '• 5 virole' not in mo(), 'piattine/virole: memoria dopo ricarica (valori e casella spenta)')
+    q.click('#azz-mag'); q.click('#azz-mag'); q.wait_for_timeout(500)
+    check(q.input_value('#mg-in-piattine') == '' and q.input_value('#mg-in-virole') == '' and q.is_checked('#mg-ck-virole') and not any(w in q.eval_on_selector('#mg-out', 'e => e.value') for w in ['piattine', 'virole']) and q.evaluate("() => localStorage.getItem('reportistica.v1.magazzino')") is None, 'piattine/virole: Azzera svuota campi, caselle e memoria')
+    pr = q.evaluate("() => { const f = MG.parse('*Controllo magazzino*\\n• 2 piattine\\n• 7 virole\\n• 1 bat'); return [f.piattine, f.virole, f.bat, f.xm.length]; }")
+    check(pr == ['2', '7', '1', 0], 'piattine/virole: lettura di un messaggio salvato ' + str(pr))
+    check(not errs, 'piattine/virole: nessun errore JS')
+    cm.close()
+
+    # ======================= ACCESSO e INVIO ONLINE (rete finta: nessuna chiamata vera) =======================
+    SBH = 'https://tzevatahoxxtkesyqssh.supabase.co'
+    PUBKEY = 'sb_publishable_87KOPApbv0LGUPA8Tx2fBA_REqKz-ni'
+    COLS = ['body', 'kind', 'name', 'report_date', 'shift']
+    def finto():
+        return {'log': [], 'off': False, 'valid': set(), 'rt': 'RT1', 'refresh_ok': True, 'post_status': None, 'posted': []}
+    def sb_handler(st):
+        def h(route, req):
+            st['log'].append((req.method, req.url, dict(req.headers), req.post_data))
+            if st['off']: route.abort(); return
+            u = req.url
+            js = lambda code, o: route.fulfill(status=code, content_type='application/json', body=json.dumps(o))
+            if '/auth/v1/token?grant_type=password' in u:
+                d = json.loads(req.post_data or '{}')
+                if req.headers.get('apikey') == PUBKEY and d.get('email') == 'l.cavo@reportistica-fil.it' and d.get('password') == 'giusta':
+                    st['valid'] = {'AT1'}; st['rt'] = 'RT1'
+                    js(200, {'access_token': 'AT1', 'refresh_token': 'RT1', 'expires_in': 3600, 'user': {'id': 'x'}})
+                else: js(400, {'error': 'invalid_grant', 'error_description': 'Invalid login credentials'})
+            elif '/auth/v1/token?grant_type=refresh_token' in u:
+                d = json.loads(req.post_data or '{}')
+                if st['refresh_ok'] and d.get('refresh_token') == st['rt']:
+                    st['valid'] = {'AT2'}; st['rt'] = 'RT2'
+                    js(200, {'access_token': 'AT2', 'refresh_token': 'RT2', 'expires_in': 3600, 'user': {'id': 'x'}})
+                else: js(400, {'error': 'invalid_grant'})
+            elif u.endswith('/rest/v1/reports'):
+                tok = (req.headers.get('authorization') or '').replace('Bearer ', '')
+                if st['post_status']: js(st['post_status'], {'message': 'no'}); return
+                if tok not in st['valid'] or req.headers.get('apikey') != PUBKEY: js(401, {'message': 'JWT expired'}); return
+                st['posted'].append(json.loads(req.post_data)); route.fulfill(status=201, body='')
+            else: route.fulfill(status=404, body='')
+        return h
+    def sb_nuovo(st, ora=UTC(2026, 10, 8, 10, 0), init=None, vp=None, lv=True):
+        c = b.new_context(viewport=vp or {'width': 400, 'height': 900})
+        if lv: c.add_init_script(LV)
+        if init: c.add_init_script(init)
+        c.route(SBH + '/**', sb_handler(st))
+        q = c.new_page(); q.on('pageerror', lambda e: errs.append(str(e)))
+        q.clock.set_fixed_time(ora); q.goto(URL); q.wait_for_selector('#v-home', state='attached'); return c, q
+    onl = lambda: q.text_content('#onl-t')
+    attendi = lambda txt: q.wait_for_function("t => document.getElementById('onl-t').textContent.includes(t)", arg=txt, timeout=5000)
+    coda = lambda: q.evaluate("() => { const r = localStorage.getItem('reportistica.v1.coda'); return r ? JSON.parse(r).d : []; }")
+    SESS = "() => localStorage.getItem('reportistica.v1.sessione')"
+    def entra(user='l.cavo', pw='giusta'):
+        q.click('#onl-btn'); q.wait_for_selector('#v-login', state='visible')
+        q.fill('#lg-user', user); q.fill('#lg-pass', pw); q.click('#lg-go')
+    errs.clear()
+    st = finto(); cs, q = sb_nuovo(st); q.evaluate(NOWA)
+    check(q.is_visible('#v-home') and 'Non collegato: i report non vengono salvati online' in onl() and q.is_visible('#onl-btn') and q.text_content('#onl-btn') == 'Accedi' and not q.is_visible('#onl-exit'), 'online: non loggato -> home con riga "Non collegato" e tasto Accedi')
+    q.click('[data-go=turno]'); q.fill('#in-prod', '5'); q.click('#copy'); q.wait_for_selector('#status', state='visible', timeout=3000)
+    check(q.inner_text('#status') in OKCOPIA and len(coda()) == 1 and st['log'] == [], 'online: non loggato -> Copia funziona, 1 voce in coda, nessuna chiamata online')
+    q.click('#copy'); q.click('#wa')
+    check(len(coda()) == 1, "online: stesso testo copiato/WhatsApp piu' volte -> una sola voce (come l'archivio)")
+    q.click('#back')
+    check("1 da inviare dopo l'accesso" in onl(), 'online: la riga non collegato mostra le voci in coda')
+    entra('l.cavo', 'sbagliata')
+    q.wait_for_selector('#lg-err', state='visible', timeout=3000)
+    check(q.inner_text('#lg-err') == 'Nome utente o password sbagliati' and q.is_visible('#v-login') and q.evaluate(SESS) is None and q.get_attribute('#lg-pass', 'type') == 'password', 'accesso: password sbagliata -> messaggio chiaro, resta sulla schermata, niente sessione')
+    q.click('#lg-eye'); check(q.get_attribute('#lg-pass', 'type') == 'text', 'accesso: occhio mostra la password'); q.click('#lg-eye')
+    lg = [x for x in st['log'] if 'grant_type=password' in x[1]][0]
+    check(lg[0] == 'POST' and lg[2].get('apikey') == PUBKEY and json.loads(lg[3]) == {'email': 'l.cavo@reportistica-fil.it', 'password': 'sbagliata'} and 'sbagliata' not in lg[1], "accesso: chiamata giusta (apikey, email con dominio aggiunto, password nel corpo e non nell'URL)")
+    q.fill('#lg-user', ' L.Cavo '); q.fill('#lg-pass', 'giusta'); q.click('#lg-go')
+    q.wait_for_selector('#v-home', state='visible', timeout=5000); attendi('Online: tutto salvato')
+    ses = json.loads(q.evaluate(SESS))
+    check(ses['u'] == 'l.cavo' and ses['at'] == 'AT1' and ses['rt'] == 'RT1', 'accesso: sessione salvata (nome, token)')
+    check(len(st['posted']) == 1 and coda() == [] and q.is_visible('#onl-exit') and q.text_content('#onl-exit') == 'Esci (l.cavo)' and not q.is_visible('#onl-btn'), 'accesso ok: parte la coda, "Online: tutto salvato", tasto Esci (l.cavo)')
+    P = st['posted'][0]; rq = [x for x in st['log'] if x[1].endswith('/rest/v1/reports')][-1]
+    sel = q.evaluate("() => [document.querySelector('#shiftRow [aria-pressed=true]').textContent, document.getElementById('date').value]")
+    check(sorted(P) == COLS and P['kind'] == 'turno' and P['shift'] == sel[0] and P['report_date'] == sel[1] and P['name'] == f'Report turno {sel[0]} {sel[1]}' and 'Produzione 5 ton' in P['body'], 'invio turno: solo le 5 colonne, kind/shift/report_date/name giusti ' + str(P)[:150])
+    check(rq[2].get('apikey') == PUBKEY and rq[2].get('authorization') == 'Bearer AT1' and rq[2].get('prefer') == 'return=minimal' and 'AT1' not in rq[1], "invio: intestazioni giuste (apikey, Bearer, return=minimal), token non nell'URL")
+    q.click('[data-go=mag]'); q.fill('#mg-in-tot', '21'); q.click('#mg-copy'); q.click('#back'); attendi('Online: tutto salvato')
+    q.click('[data-go=lam]'); q.fill('#la-num-0', '19223'); q.click('#la-copy'); q.click('#back'); attendi('Online: tutto salvato'); q.wait_for_timeout(300)
+    M, Lm = st['posted'][1], st['posted'][2]
+    check(sorted(M) == COLS and M['kind'] == 'magazzino' and M['shift'] is None and M['report_date'] is None and M['name'] == 'Controllo magazzino 2026-10-08 12-00' and 'Totale pacchi in magazzino: 21' in M['body'], 'invio magazzino: payload e nome giusti ' + str(M)[:150])
+    check(sorted(Lm) == COLS and Lm['kind'] == 'lamiere' and Lm['shift'] is None and Lm['report_date'] is None and Lm['name'] == 'Controllo lamiere 2026-10-08 12-00' and 'Lotto 19223' in Lm['body'], 'invio lamiere: payload e nome giusti ' + str(Lm)[:150])
+    check(len(st['posted']) == 3, 'invio: un solo invio per ogni Copia (nessun doppione)')
+    # 401 -> rinnovo -> riprova
+    st['valid'].clear(); n0 = len(st['posted'])
+    q.click('[data-go=mag]'); q.fill('#mg-in-sped', '7'); q.click('#mg-copy'); q.click('#back'); attendi('Online: tutto salvato')
+    sess2 = json.loads(q.evaluate(SESS))
+    check(len(st['posted']) == n0 + 1 and sess2['at'] == 'AT2' and sess2['rt'] == 'RT2' and any('grant_type=refresh_token' in x[1] for x in st['log']), '401: rinnovo del token una volta e poi riprova (inviato, nuova sessione salvata)')
+    # rete assente -> resta in coda -> evento online -> si svuota
+    st['off'] = True; n0 = len(st['posted'])
+    q.click('[data-go=lam]'); q.fill('#la-num-0', '19224'); q.click('#la-copy'); q.click('#back'); q.wait_for_timeout(300)
+    check(len(coda()) == 1 and 'In coda: 1 report da inviare' in onl() and len(st['posted']) == n0 and not q.is_visible('#onl-btn'), 'rete assente: il report resta in coda, riga "In coda: 1 report da inviare"')
+    st['off'] = False; q.evaluate("() => window.dispatchEvent(new Event('online'))"); attendi('Online: tutto salvato')
+    check(coda() == [] and len(st['posted']) == n0 + 1 and st['posted'][-1]['kind'] == 'lamiere', 'torna la rete (evento online): la coda si svuota in ordine')
+    # dato rifiutato (422): scartato dalla coda, segnalato
+    st['post_status'] = 422; n0 = len(st['posted'])
+    q.click('[data-go=mag]'); q.fill('#mg-in-intest', '3'); q.click('#mg-copy'); q.click('#back'); q.wait_for_selector('#onl-note', state='visible', timeout=5000)
+    check(coda() == [] and len(st['posted']) == n0 and 'rifiutato' in q.text_content('#onl-note'), 'errore 422: voce scartata dalla coda e segnalata')
+    st['post_status'] = None
+    # 401 che resta -> in coda, "Accedi di nuovo"
+    st['valid'].clear(); st['refresh_ok'] = False; n0 = len(st['posted'])
+    q.click('[data-go=mag]'); q.fill('#mg-in-intest', '4'); q.click('#mg-copy'); q.click('#back'); attendi('Accesso scaduto')
+    check(len(coda()) == 1 and q.text_content('#onl-btn') == 'Accedi di nuovo' and q.is_visible('#onl-btn') and len(st['posted']) == n0, '401 che resta: report in coda, riga "Accesso scaduto" e tasto "Accedi di nuovo"')
+    st['refresh_ok'] = True; entra(); q.wait_for_selector('#v-home', state='visible', timeout=5000); attendi('Online: tutto salvato')
+    check(coda() == [] and len(st['posted']) == n0 + 1, 'accedi di nuovo: la coda parte')
+    # Esci: doppio tocco
+    q.click('#onl-exit'); check(q.text_content('#onl-exit') == 'Confermi?' and q.evaluate(SESS) is not None, 'esci: primo tocco chiede conferma')
+    q.click('#onl-exit'); q.wait_for_timeout(100)
+    check(q.evaluate(SESS) is None and 'Non collegato' in onl() and not q.is_visible('#onl-exit'), 'esci: secondo tocco -> sessione tolta, "Non collegato"')
+    q.click('[data-go=mag]'); q.fill('#mg-in-intest', '9'); q.click('#mg-copy'); q.click('#back'); q.wait_for_timeout(300)
+    check(len(coda()) == 1, "dopo Esci: l'app si usa lo stesso, il report va in coda")
+    check(not errs, 'online: nessun errore JS')
+    cs.close()
+    # all'apertura, con sessione salvata e coda: parte da sola
+    sess_js = "try{localStorage.setItem('reportistica.v1.sessione', JSON.stringify({v:1,u:'l.cavo',at:'AT1',rt:'RT1',exp:9999999999999}));localStorage.setItem('reportistica.v1.coda', JSON.stringify({v:1,d:[{id:'a1',p:{kind:'lamiere',shift:null,report_date:null,name:'Controllo lamiere 2026-10-07 09-00',body:'*Controllo lamiere*\\nLotto 1'}}]}))}catch(e){}"
+    st2 = finto(); st2['valid'] = {'AT1'}
+    c2, q = sb_nuovo(st2, init="if(!sessionStorage.getItem('g')){ " + sess_js + " sessionStorage.setItem('g','1'); }")
+    attendi('Online: tutto salvato')
+    check(len(st2['posted']) == 1 and st2['posted'][0]['name'] == 'Controllo lamiere 2026-10-07 09-00' and not q.is_visible('#v-login'), 'apertura app con sessione e coda: la coda parte da sola, nessuna schermata di accesso')
+    c2.close()
+    # prima volta in assoluto: la schermata Accedi si propone, una volta sola
+    errs.clear()
+    st3 = finto(); c3_, q = sb_nuovo(st3, lv=False)
+    check(q.is_visible('#v-login') and q.is_visible('#lg-skip'), 'prima apertura: compare la schermata Accedi')
+    q.click('#lg-skip'); q.wait_for_selector('#v-home', state='visible', timeout=3000)
+    check(q.is_visible('#v-home') and 'Non collegato' in onl(), 'prima apertura: "Continua senza accedere" porta alla home, app usabile')
+    q.reload(); q.wait_for_selector('#v-home', state='visible')
+    check(not q.is_visible('#v-login') and not errs, 'seconda apertura: la schermata Accedi non si ripropone da sola')
+    c3_.close()
+    # localStorage bloccato: nessun errore JS, app usabile, accesso e invio funzionano in memoria
+    errs.clear()
+    BLK = "Object.defineProperty(window, 'localStorage', { get(){ throw new Error('bloccato'); } });"
+    st4 = finto(); c4, q = sb_nuovo(st4, init=BLK, lv=False); q.evaluate(NOWA)
+    check(q.is_visible('#v-home') and 'Non collegato' in onl(), 'localStorage bloccato: home normale, "Non collegato", nessuna schermata Accedi da sola')
+    q.click('[data-go=lam]'); q.fill('#la-num-0', '5'); q.click('#la-copy'); q.click('#back')
+    q.click('#onl-btn'); q.fill('#lg-user', 'l.cavo'); q.fill('#lg-pass', 'giusta'); q.click('#lg-go'); q.wait_for_selector('#v-home', state='visible', timeout=5000); attendi('Online: tutto salvato')
+    check(len(st4['posted']) == 1 and not errs, 'localStorage bloccato: accesso e invio funzionano in memoria, nessun errore JS')
+    c4.close()
+    # schermate 390px per Luca
+    errs.clear()
+    anteprime = R.parent / 'anteprime'; anteprime.mkdir(exist_ok=True)
+    st5 = finto(); c5, q = sb_nuovo(st5, vp={'width': 390, 'height': 844}); q.evaluate(NOWA)
+    q.screenshot(path=str(anteprime / 'online_1_home_non_collegato.png'))
+    q.click('#onl-btn'); q.wait_for_selector('#v-login', state='visible'); q.fill('#lg-user', 'l.cavo'); q.screenshot(path=str(anteprime / 'online_2_accedi.png'))
+    q.fill('#lg-pass', 'giusta'); q.click('#lg-go'); q.wait_for_selector('#v-home', state='visible', timeout=5000); attendi('Online: tutto salvato')
+    q.screenshot(path=str(anteprime / 'online_3_home_collegato.png'))
+    st5['off'] = True; q.click('[data-go=mag]'); q.fill('#mg-in-bat', '3'); q.fill('#mg-in-piattine', '4'); q.fill('#mg-in-virole', '5')
+    q.click('#mg-copy'); q.wait_for_timeout(300); q.evaluate("() => window.scrollTo(0, document.getElementById('mg-groups').offsetTop + 380)")
+    q.screenshot(path=str(anteprime / 'online_4_magazzino_piattine_virole.png'))
+    q.click('#back'); q.screenshot(path=str(anteprime / 'online_5_home_in_coda.png'))
+    check(not errs and (anteprime / 'online_4_magazzino_piattine_virole.png').exists(), 'anteprime 390px salvate in Report_Turni\\anteprime')
+    c5.close()
 
     b.close()
 srv.shutdown()

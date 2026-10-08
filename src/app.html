@@ -99,7 +99,18 @@ body:not([data-view="turno"]) #heroSub{display:none}
 .bar>button{flex:0 0 32%;font-size:13.5px}
 .bar>.btn{flex:1 1 0;font-size:15.5px}
 a.share,button.mini{min-height:34px;padding:4px 14px;font-size:13px;font-weight:400;color:var(--muted);background:linear-gradient(180deg,#2b3643 0%,#1d2631 100%);border-color:#44536a;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 3px rgba(0,0,0,.55)}
-.minirow{display:flex;justify-content:center;gap:10px;margin-top:18px}
+.minirow{display:flex;justify-content:center;gap:10px;margin-top:18px;flex-wrap:wrap}
+.onl{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:13px;color:var(--muted);text-align:center}
+.onl.ok{color:var(--ok)}.onl.q{color:#f0a030}.onl.ko{color:var(--bad)}
+.onl button{min-height:30px;padding:2px 12px;font-size:13px}
+.onl-note{margin:4px 0 0;font-size:12.5px;color:var(--bad);text-align:center}
+.lg{display:flex;flex-direction:column;gap:10px}
+.lg label{font-weight:600}
+.lg .pw{display:flex;gap:6px}
+.lg .pw button{flex:0 0 auto;min-width:76px}
+.lg .err{margin:0;font-size:14px;color:var(--bad)}
+.lg .hint{margin:0;font-size:13px;color:var(--muted)}
+.lg #lg-go{min-height:52px;font-size:18px}
 .flt{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
 .flt button{min-height:32px;padding:4px 2px;font-size:12.5px;font-weight:400}
 .flt button[aria-pressed="true"]{background:linear-gradient(180deg,#4c9bff,#2884ff 45%,#1b6fe0);border-color:#1558b8;color:#fff;font-weight:600}
@@ -145,7 +156,26 @@ button:disabled,.tile:disabled{background:#161b21;color:#6d7783;border:1px dashe
       <button class="tile" type="button" disabled>Manutenzione<small>work in progress</small></button>
     </div>
     <div class="minirow"><button type="button" class="mini" id="arc-open"><span>Archivio</span><span class="badge" id="arc-badge" hidden></span></button>
-      <a class="btn share" id="share" href="#" target="_blank" rel="noopener">&#10150; Condividi</a></div>
+      <a class="btn share" id="share" href="#" target="_blank" rel="noopener">&#10150; Condividi</a>
+      <button type="button" class="mini" id="onl-exit" hidden>Esci</button></div>
+    <div class="onl" id="onl" role="status"><span id="onl-t"></span><button type="button" class="mini" id="onl-btn" hidden>Accedi</button></div>
+    <p class="onl-note" id="onl-note" role="status" hidden></p>
+  </div>
+
+  <div class="view" id="v-login" hidden>
+    <section class="card">
+      <h2>Accedi</h2>
+      <form class="lg" id="lg-form" autocomplete="on" novalidate>
+        <p class="hint">Serve per salvare i report online. Senza accedere l'app funziona lo stesso.</p>
+        <label for="lg-user">Nome utente</label>
+        <input id="lg-user" name="username" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="es. l.cavo">
+        <label for="lg-pass">Password</label>
+        <div class="pw"><input id="lg-pass" name="password" type="password" autocomplete="current-password"><button type="button" id="lg-eye" aria-pressed="false" aria-label="Mostra la password">Mostra</button></div>
+        <p class="err" id="lg-err" role="alert" hidden></p>
+        <button type="submit" class="primary" id="lg-go">Accedi</button>
+        <button type="button" id="lg-skip">Continua senza accedere</button>
+      </form>
+    </section>
   </div>
 
   <div class="view" id="v-turno" hidden>
@@ -235,6 +265,10 @@ button:disabled,.tile:disabled{background:#161b21;color:#6d7783;border:1px dashe
 </div>
 
 <script>
+/* ---------- collegamento online (Supabase): costanti da cambiare solo qui ---------- */
+const SB_DOMINIO = 'reportistica-fil.it';   // l'operatore scrive solo "l.cavo": l'app aggiunge @ + questo dominio
+const SB_URL = 'https://tzevatahoxxtkesyqssh.supabase.co';
+const SB_KEY = 'sb_publishable_87KOPApbv0LGUPA8Tx2fBA_REqKz-ni';   // chiave PUBBLICA (va nel codice)
 /* ---------- i campi (le "celle") ---------- */
 // pre/suf = testo fisso intorno al box; opt = se lo lasci vuoto la riga sparisce
 const DIFF_PRE = 'Emissioni diffuse (discagliatore, spianatrice, taglio lamiere e treno di laminazione):';
@@ -675,6 +709,7 @@ function arcSave(tipo, text){
     if (!ARC_TIPI[tipo] || typeof text !== 'string' || !text.trim()) return;
     const list = arcRead(), n = romeNow();
     let i = -1; for (let k = list.length - 1; k >= 0; k--) if (list[k].r === tipo) { i = k; break; }
+    try { onlEnqueue(tipo, text, i >= 0 && list[i].x === text); } catch(e) {}   // invio online (stessa regola dei doppioni dell'archivio)
     if (i >= 0 && list[i].x === text) { const e = list.splice(i, 1)[0]; e.t = n.iso; e.l = n.txt; list.push(e); }
     else list.push({ t:n.iso, l:n.txt, r:tipo, x:text.slice(0, 8000) });
     arcWrite(list); arcBadge();
@@ -803,8 +838,8 @@ wireAzzera('arc-del', () => {
 arcBadge();
 
 /* ---------- navigazione tra le pagine ---------- */
-const VIEWS = ['home','turno','mag','lam','arc'];
-const TITLES = { home:'Reportistica', turno:'Report turno', mag:'Controllo magazzino', lam:'Controllo lamiere', arc:'Archivio' };
+const VIEWS = ['home','turno','mag','lam','arc','login'];
+const TITLES = { home:'Reportistica', turno:'Report turno', mag:'Controllo magazzino', lam:'Controllo lamiere', arc:'Archivio', login:'Accedi' };
 function showView(n){
   if (!VIEWS.includes(n)) n = 'home';
   VIEWS.forEach(x => $('v-' + x).hidden = x !== n);
@@ -814,10 +849,10 @@ function showView(n){
   $('hTitle').classList.toggle('long', n === 'mag' || n === 'lam');
   $('back').hidden = n === 'home';
   window.scrollTo(0, 0);
-  if (n === 'turno') update(); else if (n === 'mag') MG.update(); else if (n === 'lam') LAM.update(); else if (n === 'arc') { arcCur = null; $('arc-det').hidden = true; $('arc-list').hidden = false; arcRender(); }
+  if (n === 'turno') update(); else if (n === 'mag') MG.update(); else if (n === 'lam') LAM.update(); else if (n === 'login') { window.loginReset && window.loginReset(); } else if (n === 'arc') { arcCur = null; $('arc-det').hidden = true; $('arc-list').hidden = false; arcRender(); }
 }
 document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => { location.hash = b.dataset.go; });
-$('back').onclick = () => { if (document.body.dataset.view === 'arc' && !$('arc-det').hidden) { arcClose(); return; } if (location.hash) history.back(); else showView('home'); };
+$('back').onclick = () => { if (document.body.dataset.view === 'login' && window.loginEsci) { window.loginEsci(); return; } if (document.body.dataset.view === 'arc' && !$('arc-det').hidden) { arcClose(); return; } if (location.hash) history.back(); else showView('home'); };
 window.addEventListener('hashchange', () => showView(location.hash.slice(1)));
 
 /* ---------- pezzi in comune delle nuove pagine ---------- */
@@ -852,6 +887,8 @@ const MG = (() => {
     { g:'Cassoni', id:'montalbetti', name:'Cassone Montalbetti', tipo:'Montalbetti', type:'cass' },
     { g:'Cassoni', id:'nostro',      name:'Cassone Nostro',      tipo:'Nostro',      type:'cass' },
     { g:'Bat', id:'bat', name:'Bat (numero)', type:'num', fmt:x => `${x} bat` },
+    { g:'Piattine', id:'piattine', name:'Piattine (numero)', type:'num', fmt:x => `${x} piattine` },
+    { g:'Virole', id:'virole', name:'Virole (numero)', type:'num', fmt:x => `${x} virole` },
     { g:'Scoria', id:'scM', name:'Mag. Lamiere',  type:'cass', lab:true },
     { g:'Scoria', id:'scB', name:'Taglio bramme', type:'cass', lab:true },
     { g:'Controllo qualità pacchi', id:'q1', name:'Superficie',            type:'line', def:'Superficie conforme' },
@@ -891,6 +928,8 @@ const MG = (() => {
           f[id] = k ? { n, s:(k[1].match(/pien\w*|met\w*|vuot\w*/gi) || []).map(normSt), note:k[2].trim() } : { n, s:[], note:rest.trim() };
         }
         else if ((x = s.match(/^(\d+)\s+bat\b/i))) f.bat = x[1];
+        else if ((x = s.match(/^(\d+)\s+piattine\b/i))) f.piattine = x[1];
+        else if ((x = s.match(/^(\d+)\s+virole\b/i))) f.virole = x[1];
         else f.xm.push(s);
       } else if (sec === 'scoria') {
         const lab = s.match(/^(mag\.?\s*lamiere|taglio\s+bramme)\s*:?\s*(.*)$/i);
@@ -933,7 +972,7 @@ const MG = (() => {
     const L = [SALUTO_MG, TITOLO_MG];
     const sez = (title, rows) => { rows = rows.filter(Boolean); if (rows.length) L.push('', ...(title ? [title] : []), ...rows.map(r => '• ' + r)); };
     sez('', ['tot','sped','intest'].map(row));
-    sez('', [...['risaliti','montalbetti','nostro','bat'].map(row), ...(orig.xm || [])]);
+    sez('', [...['risaliti','montalbetti','nostro','bat','piattine','virole'].map(row), ...(orig.xm || [])]);
     sez('*Scoria*', [...['scM','scB'].map(row), ...(orig.xs || [])]);
     sez('*Controllo qualità pacchi*', [...['q1','q2','q3','q4','q5'].map(row), ...(orig.xq || [])]);
     return L.join('\n');
@@ -1104,7 +1143,165 @@ const LAM = (() => {
   return { update, parse, build };
 })();
 
+/* ---------- ACCESSO e INVIO ONLINE dei report (solo fetch, nessuna libreria; mai bloccante) ---------- */
+const SES_KEY = 'reportistica.v1.sessione', CODA_KEY = 'reportistica.v1.coda', LOGINVISTO_KEY = 'reportistica.v1.loginvisto';
+const CODA_MAX = 200;
+const lsGet = k => { try { return localStorage.getItem(k); } catch(e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); return true; } catch(e) { return false; } };
+const lsDel = k => { try { localStorage.removeItem(k); } catch(e) {} };
+const sbNome = u => String(u || '').trim().toLowerCase().replace(/\s+/g, '');
+const sbEmail = u => { const n = sbNome(u); return n.includes('@') ? n : n + '@' + SB_DOMINIO; };
+const sbCorto = u => { const suf = '@' + SB_DOMINIO; return u.endsWith(suf) ? u.slice(0, -suf.length) : u; };
+
+// sessione: in memoria + (se si puo') in localStorage; dura finche' non si esce
+let SES = (() => {
+  try { const o = JSON.parse(lsGet(SES_KEY) || 'null');
+    return o && o.v === 1 && typeof o.u === 'string' && o.u && typeof o.at === 'string' && o.at && typeof o.rt === 'string' && o.rt ? { u:o.u, at:o.at, rt:o.rt, exp:+o.exp || 0 } : null; } catch(e) { return null; }
+})();
+function sesSet(s){ SES = s; if (s) lsSet(SES_KEY, JSON.stringify({ v:1, u:s.u, at:s.at, rt:s.rt, exp:s.exp })); else lsDel(SES_KEY); }
+let authKo = false;       // il server ha rifiutato il token anche dopo il rinnovo: serve accedere di nuovo
+
+// coda dei report da inviare
+const KINDS = ['turno', 'magazzino', 'lamiere'];
+let CODA = (() => {
+  try { const o = JSON.parse(lsGet(CODA_KEY) || 'null'); if (!o || o.v !== 1 || !Array.isArray(o.d)) return [];
+    return o.d.filter(e => e && typeof e.id === 'string' && e.p && KINDS.includes(e.p.kind) && typeof e.p.name === 'string' && typeof e.p.body === 'string'
+      && (e.p.shift === null || typeof e.p.shift === 'string') && (e.p.report_date === null || typeof e.p.report_date === 'string')).slice(-CODA_MAX); } catch(e) { return []; }
+})();
+const codaSave = () => { if (CODA.length) lsSet(CODA_KEY, JSON.stringify({ v:1, d:CODA })); else lsDel(CODA_KEY); };
+const newId = () => { try { return crypto.randomUUID(); } catch(e) { return Date.now().toString(36) + Math.random().toString(36).slice(2); } };
+const ultimoInvio = {};   // anche se l'archivio non si puo' scrivere, lo stesso testo di fila non si accoda due volte
+
+function onlEnqueue(tipo, text, dupArchivio){
+  if (!KINDS.includes(tipo) || typeof text !== 'string' || !text.trim()) return;
+  if (dupArchivio || ultimoInvio[tipo] === text) { ultimoInvio[tipo] = text; return; }
+  ultimoInvio[tipo] = text;
+  const n = romeNow().iso, giorno = n.slice(0, 10), ora = n.slice(11, 13) + '-' + n.slice(14, 16);
+  let p;
+  if (tipo === 'turno') { const t = SHIFTS[shift], d = ($('date').value || '').trim() || giorno;
+    p = { kind:'turno', shift:t, report_date:d, name:`Report turno ${t} ${d}`, body:text }; }
+  else if (tipo === 'magazzino') p = { kind:'magazzino', shift:null, report_date:null, name:`Controllo magazzino ${giorno} ${ora}`, body:text };
+  else p = { kind:'lamiere', shift:null, report_date:null, name:`Controllo lamiere ${giorno} ${ora}`, body:text };
+  CODA.push({ id:newId(), p });
+  if (CODA.length > CODA_MAX) CODA = CODA.slice(-CODA_MAX);
+  codaSave(); onlNote(''); onlRender();
+  codaFlush();
+}
+
+function sbFetch(path, opt){
+  const c = typeof AbortController === 'function' ? new AbortController() : null, t = c ? setTimeout(() => c.abort(), 15000) : null;
+  return fetch(SB_URL + path, c ? { ...opt, signal:c.signal } : opt).finally(() => { if (t) clearTimeout(t); });
+}
+const sbHead = extra => ({ apikey:SB_KEY, 'Content-Type':'application/json', ...extra });
+function sbTok(j, u){
+  if (!j || typeof j.access_token !== 'string' || typeof j.refresh_token !== 'string') return null;
+  return { u, at:j.access_token, rt:j.refresh_token, exp:Date.now() + (+j.expires_in || 3600) * 1000 };
+}
+async function sbLogin(utente, pw){      // -> { ok:true } | { e:'cred'|'rete'|'altro'|'troppi' }
+  let r;
+  try { r = await sbFetch('/auth/v1/token?grant_type=password', { method:'POST', headers:sbHead(), body:JSON.stringify({ email:sbEmail(utente), password:pw }) }); }
+  catch(e) { return { e:'rete' }; }
+  if (r.status === 429) return { e:'troppi' };
+  if (!r.ok) return { e: r.status >= 400 && r.status < 500 ? 'cred' : 'altro' };
+  let t; try { t = sbTok(await r.json(), sbCorto(sbNome(utente))); } catch(e) { t = null; }
+  if (!t) return { e:'altro' };
+  sesSet(t); authKo = false; return { ok:true };
+}
+async function sbRefresh(){               // -> true | false (rifiutato) | 'rete'
+  if (!SES) return false;
+  let r;
+  try { r = await sbFetch('/auth/v1/token?grant_type=refresh_token', { method:'POST', headers:sbHead(), body:JSON.stringify({ refresh_token:SES.rt }) }); }
+  catch(e) { return 'rete'; }
+  if (!r.ok) return r.status >= 500 ? 'rete' : false;
+  let t; try { t = sbTok(await r.json(), SES.u); } catch(e) { t = null; }
+  if (!t) return false;
+  sesSet(t); return true;
+}
+function sbPost(p){
+  return sbFetch('/rest/v1/reports', { method:'POST', headers:sbHead({ Authorization:'Bearer ' + SES.at, Prefer:'return=minimal' }),
+    body:JSON.stringify({ kind:p.kind, shift:p.shift, report_date:p.report_date, name:p.name, body:p.body }) });
+}
+
+let codaBusy = false;
+async function codaFlush(){
+  if (codaBusy || !SES || authKo || !CODA.length) { onlRender(); return; }
+  codaBusy = true; let rifiutati = 0, rinnovato = false;
+  try {
+    while (CODA.length && SES) {
+      const it = CODA[0]; let r;
+      try { r = await sbPost(it.p); } catch(e) { break; }                 // niente rete: resta in coda
+      if (r.status === 401) {
+        if (!rinnovato) { rinnovato = true; const k = await sbRefresh(); if (k === true) continue; if (k === 'rete') break; }
+        authKo = true; break;
+      }
+      if (r.ok || (r.status >= 400 && r.status < 500 && r.status !== 408 && r.status !== 429)) {
+        CODA = CODA.filter(x => x.id !== it.id); codaSave();
+        if (r.ok) authKo = false; else rifiutati++;
+        continue;
+      }
+      break;                                                              // 5xx, 408, 429: riprova piu' tardi
+    }
+  } catch(e) {}
+  codaBusy = false;
+  if (rifiutati) onlNote(rifiutati === 1 ? 'Un report è stato rifiutato dal server e non è stato salvato online' : rifiutati + ' report sono stati rifiutati dal server e non sono stati salvati online');
+  onlRender();
+}
+setInterval(() => { if (CODA.length) codaFlush(); }, 60000);
+window.addEventListener('online', () => codaFlush());
+document.addEventListener('visibilitychange', () => { if (!document.hidden) codaFlush(); });
+
+/* stato visibile in home */
+function onlNote(m){ const n = $('onl-note'); n.textContent = m; n.hidden = !m; }
+function onlRender(){
+  try {
+    const box = $('onl'), t = $('onl-t'), b = $('onl-btn'), q = CODA.length;
+    box.className = 'onl';
+    if (!SES) { t.textContent = 'Non collegato: i report non vengono salvati online' + (q ? ` (${q} da inviare dopo l'accesso)` : ''); b.textContent = 'Accedi'; b.hidden = false; box.classList.add('ko'); }
+    else if (authKo) { t.textContent = `Accesso scaduto: ${q} report in coda`; b.textContent = 'Accedi di nuovo'; b.hidden = false; box.classList.add('ko'); }
+    else if (q) { t.textContent = `In coda: ${q} report da inviare`; b.hidden = true; box.classList.add('q'); }
+    else { t.textContent = 'Online: tutto salvato'; b.hidden = true; box.classList.add('ok'); }
+    const x = $('onl-exit'); x.hidden = !SES; if (SES && !x.dataset.conf) x.textContent = `Esci (${SES.u})`;
+  } catch(e) {}
+}
+let loginDaHome = false;   // true se si e' arrivati alla schermata Accedi toccando il tasto (allora si torna indietro con la cronologia)
+$('onl-btn').onclick = () => { loginDaHome = true; location.hash = 'login'; };
+(() => {   // Esci: primo tocco chiede conferma, secondo tocco esce (la coda resta e parte dopo il prossimo accesso)
+  const b = $('onl-exit'); let t = null;
+  b.onclick = () => {
+    if (t) { clearTimeout(t); t = null; delete b.dataset.conf; sesSet(null); authKo = false; onlNote(''); onlRender(); return; }
+    b.dataset.conf = '1'; b.textContent = 'Confermi?';
+    t = setTimeout(() => { t = null; delete b.dataset.conf; onlRender(); }, 3000);
+  };
+})();
+
+/* schermata Accedi */
+(() => {
+  const err = m => { $('lg-err').textContent = m; $('lg-err').hidden = !m; };
+  let busy = false;
+  $('lg-eye').onclick = () => { const i = $('lg-pass'), show = i.type === 'password'; i.type = show ? 'text' : 'password';
+    $('lg-eye').textContent = show ? 'Nascondi' : 'Mostra'; $('lg-eye').setAttribute('aria-pressed', String(show)); $('lg-eye').setAttribute('aria-label', show ? 'Nascondi la password' : 'Mostra la password'); };
+  const esci = () => { if (loginDaHome && location.hash) { loginDaHome = false; history.back(); } else { history.replaceState(null, '', location.pathname + location.search); showView('home'); } };
+  $('lg-skip').onclick = esci; window.loginEsci = esci;
+  $('lg-form').addEventListener('submit', async ev => {
+    ev.preventDefault(); if (busy) return;
+    const u = $('lg-user').value, pw = $('lg-pass').value;
+    if (!sbNome(u) || !pw) { err('Scrivi nome utente e password'); return; }
+    busy = true; err(''); $('lg-go').disabled = true; $('lg-go').textContent = 'Accesso in corso...';
+    const r = await sbLogin(u, pw);
+    busy = false; $('lg-go').disabled = false; $('lg-go').textContent = 'Accedi';
+    if (!r.ok) { err(r.e === 'cred' ? 'Nome utente o password sbagliati' : r.e === 'rete' ? 'Niente connessione: riprova' : r.e === 'troppi' ? 'Troppi tentativi: aspetta un minuto e riprova' : 'Il servizio non risponde: riprova tra poco'); return; }
+    $('lg-pass').value = ''; $('lg-pass').type = 'password'; $('lg-eye').textContent = 'Mostra';
+    onlRender(); esci(); codaFlush();
+  });
+  window.loginReset = () => { err(''); $('lg-pass').value = ''; if (SES) $('lg-user').value = SES.u; };
+})();
+onlRender();
+codaFlush();
+// la prima volta in assoluto (mai vista la schermata) si propone l'accesso; se la memoria e' bloccata non si propone
+let primaVolta = false;
+try { if (!SES && !localStorage.getItem(LOGINVISTO_KEY) && localStorage.setItem(LOGINVISTO_KEY, '1') === undefined) primaVolta = true; } catch(e) {}
 /* ---------- avvio: sempre dalla home ---------- */
 if (location.hash) history.replaceState(null, '', location.pathname + location.search);
 showView('home');
+if (primaVolta) location.hash = 'login';
 </script>
