@@ -29,7 +29,7 @@ body{background:var(--bg);color:var(--ink);font:14.5px/1.4 var(--f-body);padding
 .wrap{max-width:600px;margin:0 auto;display:flex;flex-direction:column;gap:6px}
 
 /* barra bianca come il sito */
-header{display:flex;align-items:center;gap:12px;background:var(--panel);border-bottom:3px solid var(--accent);margin-inline:-16px;padding:5px 16px;box-shadow:var(--shadow)}
+header{position:relative;display:flex;align-items:center;gap:12px;background:var(--panel);border-bottom:3px solid var(--accent);margin-inline:-16px;padding:5px 16px;box-shadow:var(--shadow)}
 .logo{height:36px;min-width:38px;padding:0 6px;background:var(--accent);color:#fff;display:grid;place-items:center;font:700 17px/1 var(--f-display);letter-spacing:1px}
 .logofull{height:36px;width:auto;display:block}
 /* titolo nella barra, accanto al logo */
@@ -111,7 +111,13 @@ body:not([data-view="turno"]) #heroSub{display:none}
 .bar>button{flex:0 0 32%;font-size:13.5px}
 .bar>.btn{flex:1 1 0;font-size:15.5px}
 a.share,button.mini{min-height:34px;padding:4px 14px;font-size:13px;font-weight:400;color:var(--muted);background:linear-gradient(180deg,#2b3643 0%,#1d2631 100%);border-color:#44536a;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 3px rgba(0,0,0,.55)}
-.minirow{display:flex;justify-content:center;gap:10px;margin-top:18px;flex-wrap:wrap}
+/* menu utente in alto a destra (nome o "Accedi" + tendina) */
+#um-btn{margin-left:auto;flex:0 0 auto;min-height:40px;max-width:46%;padding:4px 12px;font-size:14px;font-weight:600;color:var(--ink);background:var(--soft);border:1px solid var(--line);border-radius:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#um-btn.ko{color:var(--bad)}
+#um-menu{position:absolute;right:12px;top:100%;z-index:50;min-width:200px;background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--accent);box-shadow:0 6px 16px rgba(0,0,0,.6);display:flex;flex-direction:column}
+#um-menu[hidden]{display:none}
+#um-menu .umi{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:50px;padding:8px 16px;font:inherit;font-size:16px;font-weight:400;color:var(--ink);background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;box-shadow:none;text-decoration:none;text-align:left;cursor:pointer}
+#um-menu .umi:last-child{border-bottom:0}
 .onl{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:13px;color:var(--muted);text-align:center}
 .onl>span{flex:0 0 100%}
 #onl-t.q{color:#f0a030}#onl-c.ok{color:var(--ok)}#onl-c.ko{color:var(--bad)}
@@ -168,6 +174,13 @@ button:disabled,.tile:disabled{background:#161b21;color:#6d7783;border:1px dashe
     <button class="backbtn" id="back" type="button" aria-label="Torna alla home" hidden>&larr;</button>
     <img class="logofull" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDcgNDcyIj48cmVjdCB3aWR0aD0iMTQ3IiBoZWlnaHQ9IjQ3MiIgZmlsbD0iIzNhN2ZjMSIvPjxyZWN0IHg9IjE0NyIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI0NzIiIGZpbGw9IiMxZDFkMWIiLz48ZyBmaWxsPSIjZmZmIj48cmVjdCB4PSI0NCIgeT0iNTQiIHdpZHRoPSIzMCIgaGVpZ2h0PSIzNzgiLz48cmVjdCB4PSI0NCIgeT0iNTQiIHdpZHRoPSI3OCIgaGVpZ2h0PSIyOCIvPjxyZWN0IHg9IjQ0IiB5PSIyMzAiIHdpZHRoPSI2NiIgaGVpZ2h0PSIyNyIvPjxyZWN0IHg9IjE0MiIgeT0iNTQiIHdpZHRoPSIyOCIgaGVpZ2h0PSIzNzgiLz48cmVjdCB4PSIyMDAiIHk9IjU0IiB3aWR0aD0iMjgiIGhlaWdodD0iMzc4Ii8+PHJlY3QgeD0iMjAwIiB5PSI0MDQiIHdpZHRoPSI2NyIgaGVpZ2h0PSIyOCIvPjwvZz48L3N2Zz4K" alt="FIL">
     <div class="htitle"><h1 id="hTitle">Reportistica</h1><p id="heroSub">&nbsp;</p></div>
+    <button type="button" id="um-btn" aria-haspopup="menu" aria-expanded="false"></button>
+    <div id="um-menu" role="menu" hidden>
+      <button type="button" class="umi" id="um-login" role="menuitem" hidden>Accedi di nuovo</button>
+      <a class="umi" id="share" role="menuitem" href="#" target="_blank" rel="noopener">Condividi l'app</a>
+      <button type="button" class="umi" id="arc-open" role="menuitem"><span>Archivio</span><span class="badge" id="arc-badge" hidden></span></button>
+      <button type="button" class="umi" id="onl-exit" role="menuitem" hidden>Esci</button>
+    </div>
   </header>
 
   <div class="view" id="v-home">
@@ -178,11 +191,8 @@ button:disabled,.tile:disabled{background:#161b21;color:#6d7783;border:1px dashe
       <button class="tile" type="button" disabled>Logistica<small>work in progress</small></button>
       <button class="tile" type="button" disabled>Manutenzione<small>work in progress</small></button>
     </div>
-    <div class="minirow"><button type="button" class="mini" id="arc-open"><span>Archivio</span><span class="badge" id="arc-badge" hidden></span></button>
-      <a class="btn share" id="share" href="#" target="_blank" rel="noopener">&#10150; Condividi</a>
-      <button type="button" class="mini" id="onl-exit" hidden>Esci</button></div>
-    <div class="onl" id="onl" role="status"><span id="onl-t"></span><span id="onl-c"></span><button type="button" class="mini" id="onl-btn" hidden>Accedi</button></div>
-    <p id="ver" style="text-align:center;font-size:12px;opacity:.55;margin:14px 0 4px">Versione 20</p>
+    <div class="onl" id="onl" role="status"><span id="onl-t"></span><span id="onl-c"></span></div>
+    <p id="ver" style="text-align:right;font-size:12px;opacity:.55;margin:14px 0 4px"></p>
   </div>
 
   <div class="view" id="v-login" hidden>
@@ -707,6 +717,9 @@ wireAzzera('azz-turno', () => { values = baseValues(); excluded = new Set(); ren
 
 // testo del tasto Condividi in fondo alla home (cambiare solo qui)
 const TESTO_CONDIVIDI = '*Reportistica FIL* - l\'app per fare i report di turno\n\nCome installarla sul telefono (1 minuto):\n1. Apri questo link con *Chrome*:\nhttps://lucacavo92-wq.github.io/reportistica-fil/\n2. Tocca i tre puntini ⋮ in alto a destra.\n3. Tocca *Installa app* (oppure *Aggiungi a schermata Home*) e conferma.\n4. Trovi l\'icona FIL sulla schermata Home. Aprila da lì.\n\niPhone: apri il link con *Safari*, tocca il tasto Condividi e poi *Aggiungi a schermata Home*.\n\nLogistica e Manutenzione arriveranno più avanti.';
+// VERSIONE MOSTRATA in basso a destra della home: cambiare SOLO qui. Formato vUNITA.DECIMALE (v2.0 -> v2.1 ...); indipendente dal nome della cache in sw.js
+const VERSIONE = 'v2.0';
+$('ver').textContent = VERSIONE;
 $('share').href = 'https://wa.me/?text=' + encodeURIComponent(TESTO_CONDIVIDI);
 
 /* ---------- ARCHIVIO dei messaggi inviati (solo nel telefono, localStorage; mai bloccante) ---------- */
@@ -842,7 +855,7 @@ function showView(n){
   growAll();
   $('hTitle').textContent = TITLES[n];
   $('hTitle').classList.toggle('long', n === 'mag' || n === 'lam');
-  $('back').hidden = n === 'home';
+  $('back').hidden = n === 'home'; $('um-btn').hidden = n === 'login';
   window.scrollTo(0, 0);
   if (n === 'turno') update(); else if (n === 'mag') MG.update(); else if (n === 'lam') LAM.update(); else if (n === 'login') { window.loginReset && window.loginReset(); } else if (n === 'arc') { if (!upBusy) upMsg(''); arcCur = null; $('arc-det').hidden = true; $('arc-list').hidden = false; arcRender(); }
 }
@@ -1286,19 +1299,32 @@ document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && !$('up-d
 /* stato visibile in home */
 function onlRender(){
   try {
-    const t = $('onl-t'), c = $('onl-c'), b = $('onl-btn'), n = arcRead().length;
+    const t = $('onl-t'), c = $('onl-c'), b = $('um-btn'), n = arcRead().length;
     t.textContent = n ? `Report sul telefono: ${n} (da caricare online)` : 'Nessun report da caricare'; t.className = n ? 'q' : '';
-    if (!SES) { c.textContent = 'Non collegato'; c.className = 'ko'; b.textContent = 'Accedi'; b.hidden = false; }
-    else if (authKo) { c.textContent = 'Accesso scaduto'; c.className = 'ko'; b.textContent = 'Accedi di nuovo'; b.hidden = false; }
-    else { c.textContent = `Collegato come ${SES.u}`; c.className = 'ok'; b.hidden = true; }
-    const x = $('onl-exit'); x.hidden = !SES; if (SES && !x.dataset.conf) x.textContent = `Esci (${SES.u})`;
+    if (!SES) { c.textContent = 'Non collegato'; c.className = 'ko'; b.textContent = 'Accedi'; b.className = 'ko'; }
+    else if (authKo) { c.textContent = 'Accesso scaduto'; c.className = 'ko'; b.textContent = SES.u; b.className = 'ko'; }
+    else { c.textContent = `Collegato come ${SES.u}`; c.className = 'ok'; b.textContent = SES.u; b.className = ''; }
+    b.hidden = document.body.dataset.view === 'login';
+    const ul = $('um-login'); ul.hidden = !(!SES || authKo); ul.textContent = SES ? 'Accedi di nuovo' : 'Accedi';
+    const x = $('onl-exit'); x.hidden = !SES; if (SES && !x.dataset.conf) x.textContent = 'Esci';
   } catch(e) {}
 }
-$('onl-btn').onclick = () => { loginDaHome = true; loginMsg = ''; location.hash = 'login'; };
+/* menu utente: il tasto (nome o "Accedi") apre/chiude la tendina; senza accesso la prima voce e' Accedi, Condividi e Archivio restano raggiungibili (tocco fuori, Esc, cambio schermata o voce scelta la chiudono) */
+function umChiudi(){ $('um-menu').hidden = true; $('um-btn').setAttribute('aria-expanded', 'false'); }
+const vaiLogin = () => { umChiudi(); loginDaHome = true; loginMsg = ''; location.hash = 'login'; };
+$('um-btn').onclick = ev => {
+  ev.stopPropagation();
+  const m = $('um-menu'); m.hidden = !m.hidden; $('um-btn').setAttribute('aria-expanded', String(!m.hidden));
+};
+$('um-login').onclick = vaiLogin;
+['pointerdown', 'click'].forEach(tipo => document.addEventListener(tipo, ev => { if (!$('um-menu').hidden && !$('um-menu').contains(ev.target) && ev.target !== $('um-btn')) umChiudi(); }, true));   // anche sui tasti disabilitati
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape') umChiudi(); });
+window.addEventListener('hashchange', umChiudi);
+$('share').addEventListener('click', umChiudi); $('arc-open').addEventListener('click', umChiudi);
 (() => {   // Esci: primo tocco chiede conferma, secondo tocco esce (i report restano sul telefono)
   const b = $('onl-exit'); let t = null;
   b.onclick = () => {
-    if (t) { clearTimeout(t); t = null; delete b.dataset.conf; sesSet(null); authKo = false; onlRender(); return; }
+    if (t) { clearTimeout(t); t = null; delete b.dataset.conf; sesSet(null); authKo = false; umChiudi(); onlRender(); return; }
     b.dataset.conf = '1'; b.textContent = 'Confermi?';
     t = setTimeout(() => { t = null; delete b.dataset.conf; onlRender(); }, 3000);
   };

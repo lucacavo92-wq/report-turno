@@ -76,10 +76,11 @@ with sync_playwright() as pw:
     check(p.title() == 'Reportistica FIL', 'titolo pagina Reportistica FIL')
 
     # ---- tasto Condividi in home ----
-    sh = p.get_attribute('#share', 'href')
+    p.click('#um-btn'); sh = p.get_attribute('#share', 'href')
     import urllib.parse
     tx = urllib.parse.unquote(sh.split('text=', 1)[1]) if 'text=' in sh else ''
-    check(p.is_visible('#share') and sh.startswith('https://wa.me/?text=') and 'https://lucacavo92-wq.github.io/reportistica-fil/' in tx and tx.startswith('*Reportistica FIL*') and 'Come si usa' not in tx and tx.endswith('arriveranno più avanti.'), 'home: tasto Condividi apre wa.me col testo (link del sito, senza "Come si usa")')
+    check(p.is_visible('#share') and p.inner_text('#share') == "Condividi l'app" and sh.startswith('https://wa.me/?text=') and 'https://lucacavo92-wq.github.io/reportistica-fil/' in tx and tx.startswith('*Reportistica FIL*') and 'Come si usa' not in tx and tx.endswith('arriveranno più avanti.'), 'menu: voce Condividi app apre wa.me col testo (link del sito, senza "Come si usa")')
+    p.keyboard.press('Escape'); p.wait_for_timeout(50)
 
     # ---- Report turno: campi visibili subito, niente casella di incolla ----
     p.click('[data-go=turno]'); p.wait_for_selector('#v-turno', state='visible')
@@ -374,7 +375,7 @@ with sync_playwright() as pw:
     a = ag()
     check([e['r'] for e in a] == ['turno', 'turno', 'turno', 'magazzino', 'lamiere'] and a[3]['x'] == tm and a[4]['x'] == tl, 'archivio: tipo giusto per Report turno, Controllo magazzino, Controllo lamiere (Copia e WhatsApp)')
     # pagina Archivio
-    q.click('#back'); q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
+    q.click('#back'); q.click('#um-btn'); q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
     check(q.text_content('#hTitle') == 'Archivio' and q.is_visible('#back') and q.is_visible('#arc-upload') and q.is_enabled('#arc-upload'), 'archivio: pagina con titolo, freccia indietro e tasto Carica online')
     items = q.eval_on_selector_all('.arcitem', 'els => els.map(e => e.innerText)')
     check(len(items) == 5 and 'Lamiere' in items[0] and 'Magazzino' in items[1] and 'Turno' in items[2] and items[0].count('\n') >= 1, 'archivio: elenco dal piu recente con data/ora, tipo e prime righe')
@@ -404,7 +405,7 @@ with sync_playwright() as pw:
     check(len(ag()) == 4, "archivio: Azzera dei tre report non cancella l'archivio")
     check('reportistica.v1.archivio' in q.evaluate(LS), 'archivio: chiave reportistica.v1.archivio')
     # sopravvive al ricaricamento
-    q.wait_for_timeout(500); q.reload(); q.wait_for_selector('#v-home', state='visible'); q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
+    q.wait_for_timeout(500); q.reload(); q.wait_for_selector('#v-home', state='visible'); q.click('#um-btn'); q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
     check(q.locator('.arcitem').count() == 4, 'archivio: dopo il ricaricamento le voci ci sono ancora ' + str(q.locator('.arcitem').count()) + str(ag()) + q.url)
     # limite 200
     q.evaluate("() => localStorage.setItem('reportistica.v1.archivio', JSON.stringify({v:1, d:Array.from({length:200}, (_, i) => ({t:'2026-10-0'+(1+i%5)+'T10:'+String(i%60).padStart(2,'0')+':00+02:00', l:'x', r:'turno', x:'msg'+i}))}))")
@@ -413,7 +414,7 @@ with sync_playwright() as pw:
     check(len(a) == 200 and a[0]['x'] == 'msg1' and a[-1]['r'] == 'magazzino', 'archivio: limite 200 (il piu vecchio sparisce da solo)')
     ca.close()
     # ---- archivio vuoto ----
-    cb, q = nuovo(); q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
+    cb, q = nuovo(); q.click('#um-btn'); q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
     check(q.is_visible('#arc-empty') and q.inner_text('#arc-empty') == 'Nessun messaggio salvato' and q.is_disabled('#arc-upload') and q.locator('.arcitem').count() == 0, 'archivio vuoto: "Nessun messaggio salvato" e tasto Carica online disabilitato')
     cb.close()
     # ---- avviso archivio quasi pieno (180/200) e archivio pieno ----
@@ -424,15 +425,15 @@ with sync_playwright() as pw:
     check(q.is_hidden('#arc-badge'), 'avviso: home senza badge con archivio vuoto')
     riempi(q, 179); q.reload(); q.wait_for_selector('#v-home', state='visible')
     check(q.is_hidden('#arc-badge'), 'avviso: 179 messaggi -> nessun badge in home')
-    q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
+    q.click('#um-btn'); q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
     check(q.is_hidden('#arc-warn'), 'avviso: 179 messaggi -> nessun banner')
     q.click('#back'); q.click('[data-go=lam]'); q.fill('#la-num-0', '1'); q.fill('#la-testa-0-0', '25.1'); q.click('#la-copy')   # il 180esimo
     q.click('#back')
-    check(q.is_visible('#arc-badge') and q.inner_text('#arc-badge') == '180/200', 'avviso: al 180esimo messaggio compare il badge 180/200 sul tasto Archivio in home')
+    q.click('#um-btn'); check(q.is_visible('#arc-badge') and q.inner_text('#arc-badge') == '180/200', 'avviso: al 180esimo messaggio compare il badge 180/200 sul tasto Archivio in home')
     q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
     check(q.is_visible('#arc-warn') and q.inner_text('#arc-warn-t') == 'Archivio quasi pieno: 180/200. Carica online i report' and q.is_visible('#arc-w-upload'), 'avviso: banner "Archivio quasi pieno: 180/200. Carica online i report" con tasto Carica online')
     riempi(q, 200); q.click('#back'); q.click('[data-go=lam]'); q.fill('#la-testa-0-0', '25.2'); q.click('#la-copy'); q.click('#back')
-    check(len(q.evaluate(AK)) == 200 and q.inner_text('#arc-badge') == '200/200' and 'full' in q.get_attribute('#arc-badge', 'class'), 'avviso: a 200 il badge e rosso (200/200), le voci restano 200')
+    q.click('#um-btn'); check(len(q.evaluate(AK)) == 200 and q.inner_text('#arc-badge') == '200/200' and 'full' in q.get_attribute('#arc-badge', 'class'), 'avviso: a 200 il badge e rosso (200/200), le voci restano 200')
     q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
     check(q.inner_text('#arc-warn-t') == 'Archivio pieno: i messaggi più vecchi vengono cancellati', 'avviso: a 200 il banner diventa "Archivio pieno: ..."')
     # ---- Cancella archivio (3 tocchi) ----
@@ -454,16 +455,16 @@ with sync_playwright() as pw:
     for nome, val in [('testo non JSON', '{{{non json'), ('versione diversa', '{"v":99,"d":[]}'), ('d non lista', '{"v":1,"d":"abc"}'), ('voci sbagliate', '{"v":1,"d":[null,5,{"t":1},{"t":"2026-10-06T10:00:00+02:00","l":"x","r":"boh","x":"y"}]}')]:
         errs.clear()
         cc, q = nuovo(UTC(2026, 10, 6, 20, 40), "try{ if(!sessionStorage.getItem('g')){ localStorage.setItem('reportistica.v1.archivio', %r); sessionStorage.setItem('g','1'); } }catch(e){}" % val); q.evaluate(NOWA)
-        q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible'); vuoto = q.is_visible('#arc-empty') and q.is_disabled('#arc-upload')
+        q.click('#um-btn'); q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible'); vuoto = q.is_visible('#arc-empty') and q.is_disabled('#arc-upload')
         q.click('#back'); q.click('[data-go=turno]'); q.fill('#in-prod', '5'); q.click('#copy'); q.wait_for_selector('#status', state='visible', timeout=3000)
-        q.click('#back'); q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
+        q.click('#back'); q.click('#um-btn'); q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
         check(vuoto and q.locator('.arcitem').count() == 1 and not errs, 'archivio rovinato (' + nome + str((vuoto, q.locator('.arcitem').count(), errs)) + '): pagina vuota, poi Copia salva comunque, nessun errore JS')
         cc.close()
     errs.clear()
     cl_, q = nuovo(UTC(2026, 10, 6, 20, 40), "Object.defineProperty(window, 'localStorage', { get(){ throw new Error('bloccato'); } });")
     q.evaluate(NOWA); q.click('[data-go=turno]'); q.fill('#in-prod', '9'); q.click('#copy'); q.wait_for_selector('#status', state='visible', timeout=3000)
     st_ok = q.inner_text('#status') in OKCOPIA
-    q.click('#wa'); q.click('#back'); q.click('[data-go=mag]'); q.fill('#mg-in-tot', '1'); q.click('#mg-copy'); q.click('#mg-wa'); q.click('#back'); q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
+    q.click('#wa'); q.click('#back'); q.click('[data-go=mag]'); q.fill('#mg-in-tot', '1'); q.click('#mg-copy'); q.click('#mg-wa'); q.click('#back'); q.click('#um-btn'); q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
     check(st_ok and q.is_visible('#arc-empty') and q.is_disabled('#arc-upload') and not errs, 'archivio: localStorage bloccato -> Copia/WhatsApp funzionano, archivio vuoto, nessun errore JS')
     cl_.close()
     # archivio pieno (quota): Copia funziona lo stesso
@@ -567,7 +568,7 @@ with sync_playwright() as pw:
     ARCN = "() => { const r = localStorage.getItem('reportistica.v1.archivio'); return r ? JSON.parse(r).d.length : 0; }"
     CODAK = "() => localStorage.getItem('reportistica.v1.coda')"
     def apri_arc(q):
-        q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
+        q.click('#um-btn'); q.click('#arc-open'); q.wait_for_selector('#v-arc', state='visible')
     def carica(q, conferma=True):
         q.click('#arc-upload'); q.wait_for_selector('#up-dlg', state='visible')
         if conferma: q.click('#up-yes'); q.wait_for_function("() => !document.getElementById('arc-upload').textContent.startsWith('Caricamento')", timeout=8000)
@@ -576,7 +577,9 @@ with sync_playwright() as pw:
     # ---- Copia e WhatsApp: SOLO archivio sul telefono, nessuna chiamata online ----
     errs.clear(); CONS.clear()
     st = finto(); cs, q = sb_nuovo(st, init=seed_js(None, sess=False)); q.evaluate(NOWA)
-    check(q.is_visible('#v-home') and q.inner_text('#onl-t') == 'Nessun report da caricare' and q.inner_text('#onl-c') == 'Non collegato' and q.is_visible('#onl-btn') and q.text_content('#onl-btn') == 'Accedi' and not q.is_visible('#onl-exit'), 'home: archivio vuoto -> "Nessun report da caricare", "Non collegato" e tasto Accedi')
+    check(q.is_visible('#v-home') and q.inner_text('#onl-t') == 'Nessun report da caricare' and q.inner_text('#onl-c') == 'Non collegato' and q.is_visible('#um-btn') and q.text_content('#um-btn') == 'Accedi' and q.is_hidden('#um-menu'), 'home: archivio vuoto -> "Nessun report da caricare", "Non collegato" e in alto a destra "Accedi"')
+    q.click('#um-btn'); check(q.is_visible('#um-login') and q.is_visible('#share') and q.is_visible('#arc-open') and not q.is_visible('#onl-exit'), 'senza accesso: menu con Accedi, Condividi, Archivio (niente Esci)')
+    q.click('#um-btn'); check(q.is_hidden('#um-menu'), 'senza accesso: secondo tocco sul tasto chiude il menu')
     q.click('[data-go=turno]'); q.fill('#in-prod', '5'); q.click('#copy'); q.wait_for_selector('#status', state='visible', timeout=3000); q.click('#wa')
     sel = q.evaluate("() => [document.querySelector('#shiftRow [aria-pressed=true]').textContent, document.getElementById('date').value]")
     q.click('#back'); q.click('[data-go=mag]'); q.fill('#mg-in-tot', '21'); q.click('#mg-copy'); q.click('#mg-wa'); q.click('#back')
@@ -593,10 +596,15 @@ with sync_playwright() as pw:
     st = finto(); cs, q = sb_nuovo(st, init=seed_js([SEED4[0]])); q.evaluate(NOWA)
     q.click('[data-go=lam]'); q.fill('#la-num-0', '7'); q.click('#la-copy'); q.click('#la-wa'); q.click('#back'); q.wait_for_timeout(300)
     check(st['log'] == [] and q.evaluate(ARCN) == 2, 'con accesso: apertura, Copia e WhatsApp non fanno richieste; report nell\'archivio')
-    check(q.inner_text('#onl-c') == 'Collegato come l.cavo' and not q.is_visible('#onl-btn') and q.text_content('#onl-exit') == 'Esci (l.cavo)' and q.inner_text('#onl-t') == 'Report sul telefono: 2 (da caricare online)', 'home con accesso: "Collegato come l.cavo", tasto Esci (l.cavo), 2 report sul telefono')
-    q.click('#onl-exit'); check(q.text_content('#onl-exit') == 'Confermi?' and q.evaluate(SESS) is not None, 'esci: primo tocco chiede conferma')
+    check(q.inner_text('#onl-c') == 'Collegato come l.cavo' and q.text_content('#um-btn') == 'l.cavo' and q.is_hidden('#um-menu') and q.inner_text('#onl-t') == 'Report sul telefono: 2 (da caricare online)', 'home con accesso: "Collegato come l.cavo", in alto a destra "l.cavo", menu chiuso, 2 report sul telefono')
+    check(q.locator('#v-home #share, #v-home #arc-open, #v-home #onl-exit, #v-home #um-login').count() == 0 and q.locator('#um-menu #share, #um-menu #arc-open, #um-menu #onl-exit').count() == 3, 'home: Condividi, Archivio, Accedi/Esci non sono piu nella home (solo nel menu)')
+    check(q.inner_text('#ver') == 'v2.0' and q.evaluate("() => getComputedStyle(document.getElementById('ver')).textAlign") == 'right' and 'Versione' not in q.inner_text('#v-home'), 'home: in basso a destra \"v2.0\", niente piu \"Versione 20\"')
+    q.click('#um-btn'); check(q.is_visible('#um-menu') and [e.strip() for e in q.eval_on_selector_all('#um-menu .umi', 'els => els.filter(e => e.offsetParent).map(e => e.firstChild.textContent)')] == ["Condividi l'app", 'Archivio', 'Esci'], 'menu aperto con accesso: tre voci Condividi app, Archivio, Esci')
+    q.mouse.click(200, 400); q.wait_for_timeout(50); check(q.is_hidden('#um-menu'), 'menu: tocco fuori lo chiude')
+    q.click('#um-btn'); q.click('#um-btn'); check(q.is_hidden('#um-menu'), 'menu: secondo tocco sul nome lo chiude')
+    q.click('#um-btn'); q.click('#onl-exit'); check(q.is_visible('#um-menu') and q.text_content('#onl-exit') == 'Confermi?' and q.evaluate(SESS) is not None, 'esci: primo tocco chiede conferma')
     q.click('#onl-exit'); q.wait_for_timeout(100)
-    check(q.evaluate(SESS) is None and q.inner_text('#onl-c') == 'Non collegato' and not q.is_visible('#onl-exit') and q.evaluate(ARCN) == 2, 'esci: secondo tocco -> sessione tolta, "Non collegato", i report restano')
+    check(q.evaluate(SESS) is None and q.inner_text('#onl-c') == 'Non collegato' and q.text_content('#um-btn') == 'Accedi' and q.is_hidden('#um-menu') and q.evaluate(ARCN) == 2, 'esci: secondo tocco -> sessione tolta, "Non collegato", i report restano')
     cs.close()
 
     # ---- niente tasti vecchi, niente testi su zip / TXT ----
@@ -682,7 +690,8 @@ with sync_playwright() as pw:
     cs, q = sb_nuovo(st, init=seed_js(SEED4)); apri_arc(q); carica(q)
     ref = [x for x in st['log'] if 'grant_type=refresh_token' in x[1]]
     check(len(ref) == 1 and st['posted'] == [] and q.evaluate(ARCN) == 4 and 'accedi di nuovo' in msg(q) and 'Restano sul telefono 4 report' in msg(q), '401 che resta: un solo tentativo di rinnovo, niente cancellato, messaggio "accedi di nuovo": ' + msg(q))
-    q.click('#back'); check(q.inner_text('#onl-c') == 'Accesso scaduto' and q.text_content('#onl-btn') == 'Accedi di nuovo' and q.is_visible('#onl-btn'), 'home dopo 401: "Accesso scaduto" e tasto "Accedi di nuovo"')
+    q.click('#back'); check(q.inner_text('#onl-c') == 'Accesso scaduto' and q.text_content('#um-btn') == 'l.cavo', 'home dopo 401: "Accesso scaduto"')
+    q.click('#um-btn'); check(q.is_visible('#um-login') and q.text_content('#um-login') == 'Accedi di nuovo', 'home dopo 401: nel menu c e Accedi di nuovo'); q.keyboard.press('Escape')
     apri_arc(q); q.click('#arc-upload'); q.wait_for_selector('#v-login', state='visible', timeout=3000)
     check('accedi di nuovo' in q.inner_text('#lg-msg'), 'Carica online con accesso scaduto: porta alla schermata Accedi con messaggio')
     st['refresh_ok'] = True; q.fill('#lg-user', 'l.cavo'); q.fill('#lg-pass', 'giusta'); q.click('#lg-go'); q.wait_for_selector('#v-arc', state='visible', timeout=5000)
@@ -748,7 +757,7 @@ with sync_playwright() as pw:
     st = finto(); c4, q = sb_nuovo(st, init=BLK, lv=False); q.evaluate(NOWA)
     check(q.is_visible('#v-home') and q.inner_text('#onl-c') == 'Non collegato' and q.inner_text('#onl-t') == 'Nessun report da caricare', 'localStorage bloccato: home normale, "Non collegato", nessuna schermata Accedi da sola')
     q.click('[data-go=lam]'); q.fill('#la-num-0', '5'); q.click('#la-copy'); q.click('#back')
-    q.click('#onl-btn'); q.fill('#lg-user', 'l.cavo'); q.fill('#lg-pass', 'giusta'); q.click('#lg-go'); q.wait_for_selector('#v-home', state='visible', timeout=5000)
+    q.click('#um-btn'); q.click('#um-login'); q.fill('#lg-user', 'l.cavo'); q.fill('#lg-pass', 'giusta'); q.click('#lg-go'); q.wait_for_selector('#v-home', state='visible', timeout=5000)
     apri_arc(q)
     check(q.is_disabled('#arc-upload') and st['posted'] == [] and not errs, 'localStorage bloccato: accesso in memoria funziona, Archivio vuoto (tasto disabilitato), nessuna richiesta, nessun errore JS')
     c4.close()
