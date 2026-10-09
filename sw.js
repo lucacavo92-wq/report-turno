@@ -1,6 +1,6 @@
 // Fa funzionare l'app anche senza rete: prima prova la rete (versione aggiornata), se non c'e' usa la copia salvata.
 // Le richieste alla rete saltano la cache del browser (cache: 'reload'/'no-cache'), cosi' le versioni nuove arrivano subito.
-const CACHE = 'report-turno-nuova-v21';
+const CACHE = 'report-turno-nuova-v22';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => Promise.all(FILES.map(f => fetch(new Request(f, { cache: 'reload' })).then(r => { if (!r.ok) throw new Error(f); return c.put(f, r); })))));

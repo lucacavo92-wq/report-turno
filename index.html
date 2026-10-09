@@ -120,7 +120,7 @@ a.share,button.mini{min-height:34px;padding:4px 14px;font-size:13px;font-weight:
 #um-menu .umi:last-child{border-bottom:0}
 .onl{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:13px;color:var(--muted);text-align:center}
 .onl>span{flex:0 0 100%}
-#onl-t.q{color:#f0a030}#onl-c.ok{color:var(--ok)}#onl-c.ko{color:var(--bad)}
+#onl-t,#ver{position:fixed;bottom:max(6px,env(safe-area-inset-bottom));z-index:5;font-size:12px;line-height:1.2;pointer-events:none}#onl-t{left:max(10px,env(safe-area-inset-left));color:var(--muted);font-weight:600}#ver{right:max(10px,env(safe-area-inset-right));opacity:.55}#onl-t.q{color:#f0a030}#onl-c.ok{color:var(--ok)}#onl-c.ko{color:var(--bad)}
 .onl button{min-height:30px;padding:2px 12px;font-size:13px}
 #arc-upload{min-height:56px;font-size:18px}
 .warn .bar>button{flex:1 1 0}
@@ -191,8 +191,9 @@ button:disabled,.tile:disabled{background:#161b21;color:#6d7783;border:1px dashe
       <button class="tile" type="button" disabled>Logistica<small>work in progress</small></button>
       <button class="tile" type="button" disabled>Manutenzione<small>work in progress</small></button>
     </div>
-    <div class="onl" id="onl" role="status"><span id="onl-t"></span><span id="onl-c"></span></div>
-    <p id="ver" style="text-align:right;font-size:12px;opacity:.55;margin:14px 0 4px"></p>
+    <div class="onl" id="onl" role="status"><span id="onl-c"></span></div>
+    <span id="onl-t" role="status" aria-label="Report da caricare"></span>
+    <span id="ver"></span>
   </div>
 
   <div class="view" id="v-login" hidden>
@@ -718,7 +719,7 @@ wireAzzera('azz-turno', () => { values = baseValues(); excluded = new Set(); ren
 // testo del tasto Condividi in fondo alla home (cambiare solo qui)
 const TESTO_CONDIVIDI = '*Reportistica FIL* - l\'app per fare i report di turno\n\nCome installarla sul telefono (1 minuto):\n1. Apri questo link con *Chrome*:\nhttps://lucacavo92-wq.github.io/reportistica-fil/\n2. Tocca i tre puntini ⋮ in alto a destra.\n3. Tocca *Installa app* (oppure *Aggiungi a schermata Home*) e conferma.\n4. Trovi l\'icona FIL sulla schermata Home. Aprila da lì.\n\niPhone: apri il link con *Safari*, tocca il tasto Condividi e poi *Aggiungi a schermata Home*.\n\nLogistica e Manutenzione arriveranno più avanti.';
 // VERSIONE MOSTRATA in basso a destra della home: cambiare SOLO qui. Formato vUNITA.DECIMALE (v2.0 -> v2.1 ...); indipendente dal nome della cache in sw.js
-const VERSIONE = 'v2.0';
+const VERSIONE = 'v2.1';
 $('ver').textContent = VERSIONE;
 $('share').href = 'https://wa.me/?text=' + encodeURIComponent(TESTO_CONDIVIDI);
 
@@ -1300,10 +1301,10 @@ document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && !$('up-d
 function onlRender(){
   try {
     const t = $('onl-t'), c = $('onl-c'), b = $('um-btn'), n = arcRead().length;
-    t.textContent = n ? `Report sul telefono: ${n} (da caricare online)` : 'Nessun report da caricare'; t.className = n ? 'q' : '';
-    if (!SES) { c.textContent = 'Non collegato'; c.className = 'ko'; b.textContent = 'Accedi'; b.className = 'ko'; }
+    t.textContent = String(n); t.className = n ? 'q' : '';
+    if (!SES) { c.textContent = ''; c.className = ''; b.textContent = 'Accedi'; b.className = 'ko'; }
     else if (authKo) { c.textContent = 'Accesso scaduto'; c.className = 'ko'; b.textContent = SES.u; b.className = 'ko'; }
-    else { c.textContent = `Collegato come ${SES.u}`; c.className = 'ok'; b.textContent = SES.u; b.className = ''; }
+    else { c.textContent = ''; c.className = ''; b.textContent = SES.u; b.className = ''; }
     b.hidden = document.body.dataset.view === 'login';
     const ul = $('um-login'); ul.hidden = !(!SES || authKo); ul.textContent = SES ? 'Accedi di nuovo' : 'Accedi';
     const x = $('onl-exit'); x.hidden = !SES; if (SES && !x.dataset.conf) x.textContent = 'Esci';
